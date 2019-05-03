@@ -1,4 +1,5 @@
 import shelve
+import sys
 import os
 import csv
 import urllib
@@ -13,6 +14,7 @@ from luigi import LocalTarget
 from luigi import Parameter
 from luigi import Task
 from luigi import WrapperTask
+from luigi.task_register import load_task
 from luigi.task import logger as luigi_logger
 
 import requests
@@ -34,16 +36,18 @@ REMOTE_FILE_SOURCES = {
     'fips': 'http://geonames.nga.mil/gns/html/docs/GENC_ED3U7_GEC_XWALK.xlsx',
     'itu-t-e164': 'https://raw.githubusercontent.com/googlei18n/libphonenumber/master/resources/PhoneNumberMetadata.xml',
     'usa-census': 'https://www.census.gov/foreign-trade/schedules/c/country2.txt',
+    'exio-wiod-eora': 'https://raw.githubusercontent.com/konstantinstadler/country_converter/master/country_converter/country_data.tsv',
+    'ukgov': 'https://country.register.gov.uk/records.json'
 }
 
-SCRAPE_SOURCES = {
-    'edgar': 'https://www.sec.gov/edgar/searchedgar/edgarstatecodes.htm',
-    'm49': 'https://unstats.un.org/unsd/methodology/m49/overview/',
+CUSTOM_SCRAPE_SOURCES = {
+    'Edgar': 'https://www.sec.gov/edgar/searchedgar/edgarstatecodes.htm',
+    'M49': 'https://unstats.un.org/unsd/methodology/m49/overview/',
 }
 
 
 SIMPLE_TABLE_SCRAPE_SOURCES = {
-    'ituglad': 'https://www.itu.int/gladapp/GeographicalArea/List',
+    'itu-glad': 'https://www.itu.int/gladapp/GeographicalArea/List',
     'fao': 'http://www.fao.org/countryprofiles/iso3list/en/',
     'fifa-ioc': 'https://simple.wikipedia.org/wiki/Comparison_of_IOC,_FIFA,_and_ISO_3166_country_codes',
     'tld': 'https://www.iana.org/domains/root/db',
@@ -56,12 +60,14 @@ class Salt:
 
         After fetching/scraping and saving an upstream dataset,
         we then use hash of file contents as version salt in target filenames.
+
         Our salting tasks simply create a copy of the file with a new
         filename that includes salt. Since file contents are identical, we
         can use both/either the hash of file contents of the salted target
         and/or the hash of the file contents of salted target's requires()
+
         In cases where the salted target's required task is not complete,
-        descriptor returns a placeholder so luigi will know to run the task.
+        descriptor returns a placeholder ('tk') so luigi will know to run the task.
     """
     def __get__(self, task, cls):
         if task is None:
@@ -118,7 +124,7 @@ class FileSource(Task):
                     f.write(chunk)
 
 
-class SaltedLocalFile(Task):
+class SaltedFileSource(Task):
     __version__ = '0.1'
     DATA_ROOT = 'data/'
 
@@ -140,18 +146,18 @@ class SaltedLocalFile(Task):
         self.requires().output().copy(self.output().path)
 
 
-class FileSources(WrapperTask):
+class SaltedSources(WrapperTask):
 
     def requires(self):
         for slug, url in REMOTE_FILE_SOURCES.items():
             _, ext = os.path.splitext(url)
-            yield SaltedLocalFile(source=slug, ext=ext)
+            yield SaltedFileSource(source=slug, ext=ext)
 
 
 class EdgarSource(Task):
     __version__ = '0.1'
     DATA_ROOT = 'data/'
-    source = Parameter(default='edgar')
+    source = Parameter(default='Edgar')
     ext = Parameter(default='.csv')
 
     pattern = '{task.__class__.__name__}-{task.source}{task.ext}'
@@ -160,7 +166,7 @@ class EdgarSource(Task):
                           target_class=LocalTarget)
 
     def run(self):
-        url = SCRAPE_SOURCES.get(self.source)
+        url = CUSTOM_SCRAPE_SOURCES.get(self.source)
 
         content = urllib.request.urlopen(url).read()
         doc = html.fromstring(content)
@@ -197,7 +203,7 @@ class SaltedEdgarSource(Task):
     __version__ = '0.1'
     DATA_ROOT = 'data/'
 
-    source = Parameter(default='edgar')
+    source = Parameter(default='Edgar')
     ext = Parameter(default='.csv')
     salt = Salt()
 
@@ -217,7 +223,7 @@ class SaltedEdgarSource(Task):
 class M49Source(Task):
     __version__ = '0.1'
     DATA_ROOT = 'data/'
-    source = Parameter(default='m49')
+    source = Parameter(default='M49')
     ext = Parameter(default='.csv')
 
     pattern = '{task.__class__.__name__}-{task.source}{task.ext}'
@@ -226,15 +232,15 @@ class M49Source(Task):
                           target_class=LocalTarget)
 
     def run(self):
-        url = SCRAPE_SOURCES.get(self.source)
+        url = CUSTOM_SCRAPE_SOURCES.get(self.source)
 
         # TODO toggle shelf behavior with env var
         try:
             shelf = shelve.open('tmpdb')
-            content = shelf['m49']
+            content = shelf['M49']
         except KeyError:
             content = urllib.request.urlopen(url).read()
-            shelf['m49'] = str(content)
+            shelf['M49'] = str(content)
         finally:
             shelf.close()
 
@@ -301,7 +307,7 @@ class SaltedM49Source(Task):
     __version__ = '0.1'
     DATA_ROOT = 'data/'
 
-    source = Parameter(default='m49')
+    source = Parameter(default='M49')
     ext = Parameter(default='.csv')
     salt = Salt()
 
@@ -367,8 +373,15 @@ class SaltedSTSSource(Task):
         self.requires().output().copy(self.output().path)
 
 
-class STSSources(WrapperTask):
+class SaltedSources(WrapperTask):
 
     def requires(self):
+        for slug, url in REMOTE_FILE_SOURCES.items():
+            _, ext = os.path.splitext(url)
+            yield SaltedFileSource(source=slug, ext=ext)
+
         for slug, url in SIMPLE_TABLE_SCRAPE_SOURCES.items():
             yield SaltedSTSSource(source=slug, ext='.csv')
+
+        for slug, url in CUSTOM_SCRAPE_SOURCES.items():
+            yield load_task(__name__, f'Salted{slug}Source', {'source': slug, 'ext': '.csv'})
