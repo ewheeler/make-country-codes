@@ -18,10 +18,10 @@ import argparse
 
 from luigi import build
 
-from .tasks import FileSources
-from .tasks import STSSources
-from .tasks import SaltedEdgarSource
-from .tasks import SaltedM49Source
+from .tasks.data import FileSources
+from .tasks.data import STSSources
+from .tasks.data import SaltedEdgarSource
+from .tasks.data import SaltedM49Source
 
 parser = argparse.ArgumentParser(description='Command description.')
 parser.add_argument('names', metavar='NAME', nargs=argparse.ZERO_OR_MORE,
