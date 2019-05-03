@@ -43,7 +43,7 @@ SCRAPE_SOURCES = {
 
 
 SIMPLE_TABLE_SCRAPE_SOURCES = {
-    'ituglad': 'https://www.itu.int/gladapp/GeographicalArea/List',
+    'itu-glad': 'https://www.itu.int/gladapp/GeographicalArea/List',
     'fao': 'http://www.fao.org/countryprofiles/iso3list/en/',
     'fifa-ioc': 'https://simple.wikipedia.org/wiki/Comparison_of_IOC,_FIFA,_and_ISO_3166_country_codes',
     'tld': 'https://www.iana.org/domains/root/db',
