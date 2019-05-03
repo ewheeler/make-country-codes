@@ -1,4 +1,5 @@
 import shelve
+import sys
 import os
 import csv
 import urllib
@@ -13,6 +14,7 @@ from luigi import LocalTarget
 from luigi import Parameter
 from luigi import Task
 from luigi import WrapperTask
+from luigi.task_register import load_task
 from luigi.task import logger as luigi_logger
 
 import requests
@@ -39,8 +41,8 @@ REMOTE_FILE_SOURCES = {
 }
 
 CUSTOM_SCRAPE_SOURCES = {
-    'edgar': 'https://www.sec.gov/edgar/searchedgar/edgarstatecodes.htm',
-    'm49': 'https://unstats.un.org/unsd/methodology/m49/overview/',
+    'Edgar': 'https://www.sec.gov/edgar/searchedgar/edgarstatecodes.htm',
+    'M49': 'https://unstats.un.org/unsd/methodology/m49/overview/',
 }
 
 
@@ -122,7 +124,7 @@ class FileSource(Task):
                     f.write(chunk)
 
 
-class SaltedLocalFile(Task):
+class SaltedFileSource(Task):
     __version__ = '0.1'
     DATA_ROOT = 'data/'
 
@@ -144,18 +146,18 @@ class SaltedLocalFile(Task):
         self.requires().output().copy(self.output().path)
 
 
-class FileSources(WrapperTask):
+class SaltedSources(WrapperTask):
 
     def requires(self):
         for slug, url in REMOTE_FILE_SOURCES.items():
             _, ext = os.path.splitext(url)
-            yield SaltedLocalFile(source=slug, ext=ext)
+            yield SaltedFileSource(source=slug, ext=ext)
 
 
 class EdgarSource(Task):
     __version__ = '0.1'
     DATA_ROOT = 'data/'
-    source = Parameter(default='edgar')
+    source = Parameter(default='Edgar')
     ext = Parameter(default='.csv')
 
     pattern = '{task.__class__.__name__}-{task.source}{task.ext}'
@@ -201,7 +203,7 @@ class SaltedEdgarSource(Task):
     __version__ = '0.1'
     DATA_ROOT = 'data/'
 
-    source = Parameter(default='edgar')
+    source = Parameter(default='Edgar')
     ext = Parameter(default='.csv')
     salt = Salt()
 
@@ -221,7 +223,7 @@ class SaltedEdgarSource(Task):
 class M49Source(Task):
     __version__ = '0.1'
     DATA_ROOT = 'data/'
-    source = Parameter(default='m49')
+    source = Parameter(default='M49')
     ext = Parameter(default='.csv')
 
     pattern = '{task.__class__.__name__}-{task.source}{task.ext}'
@@ -235,10 +237,10 @@ class M49Source(Task):
         # TODO toggle shelf behavior with env var
         try:
             shelf = shelve.open('tmpdb')
-            content = shelf['m49']
+            content = shelf['M49']
         except KeyError:
             content = urllib.request.urlopen(url).read()
-            shelf['m49'] = str(content)
+            shelf['M49'] = str(content)
         finally:
             shelf.close()
 
@@ -305,7 +307,7 @@ class SaltedM49Source(Task):
     __version__ = '0.1'
     DATA_ROOT = 'data/'
 
-    source = Parameter(default='m49')
+    source = Parameter(default='M49')
     ext = Parameter(default='.csv')
     salt = Salt()
 
@@ -371,8 +373,15 @@ class SaltedSTSSource(Task):
         self.requires().output().copy(self.output().path)
 
 
-class STSSources(WrapperTask):
+class SaltedSources(WrapperTask):
 
     def requires(self):
+        for slug, url in REMOTE_FILE_SOURCES.items():
+            _, ext = os.path.splitext(url)
+            yield SaltedFileSource(source=slug, ext=ext)
+
         for slug, url in SIMPLE_TABLE_SCRAPE_SOURCES.items():
             yield SaltedSTSSource(source=slug, ext='.csv')
+
+        for slug, url in CUSTOM_SCRAPE_SOURCES.items():
+            yield load_task(__name__, f'Salted{slug}Source', {'source': slug, 'ext': '.csv'})
