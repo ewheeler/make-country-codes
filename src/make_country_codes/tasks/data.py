@@ -119,9 +119,11 @@ class FileSource(Task):
 
         with requests.get(url, stream=True) as r:
             r.raise_for_status()
+            if r.encoding is None:
+                r.encoding = 'utf-8'
             with self.output().open('w') as f:
-                for chunk in r.iter_content(chunk_size=128):
-                    f.write(chunk)
+                for chunk in r.iter_content(chunk_size=128, decode_unicode=True):
+                    f.write(bytes_pls(chunk))
 
 
 class SaltedFileSource(Task):
@@ -240,7 +242,7 @@ class M49Source(Task):
             content = shelf['M49']
         except KeyError:
             content = urllib.request.urlopen(url).read()
-            shelf['M49'] = str(content)
+            shelf['M49'] = content
         finally:
             shelf.close()
 
@@ -259,7 +261,8 @@ class M49Source(Task):
                     'Small Island Developing States (SIDS)': lambda x: bool(x) if bool(x) else '',
                     'Developed /  Developing Countries': lambda x: x.replace('\r\n', ''),
                     }
-            df = pd.read_html(content, attrs=attrs, header=0, converters=converters)
+            df = pd.read_html(content, encoding='utf-8', attrs=attrs,
+                              header=0, converters=converters)
             return df[0]
 
         # TODO toggle shelf behavior with env var

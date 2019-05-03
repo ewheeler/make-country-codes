@@ -24,7 +24,9 @@ class UNCodes(Task):
                 'M49': SaltedM49Source('M49')}
 
     def run(self):
-        m49 = pd.read_csv(self.requires().get('M49').output().path)
+        m49 = pd.read_csv(self.requires().get('M49').output().path,
+                          converters={'Country or Area_en':
+                                      lambda x: x.replace("Côte d’Ivoire", "Côte d'Ivoire")})
         luigi_logger.debug(m49)
 
         def norm(text):
@@ -37,12 +39,11 @@ class UNCodes(Task):
             return better
 
         unterm_converters = {'English Short': 
-                             lambda x: correct(norm(x))
+                             lambda x: swap(norm(x))
                            }
         # UN Protocol liason office needs to update their names!
-        # TODO cote d'ivoire is not matching..
+        # TODO cote d'ivoire is not matching.. Côte d'Ivoire
         unterm_replacements = {
-            "C√¥te d'Ivoire": "C√¥te d\xe2\x80\x99Ivoire",
             "Czech Republic": "Czechia",
             "Swaziland": "Eswatini",
             "the former Yugoslav Republic of Macedonia": "North Macedonia"}
