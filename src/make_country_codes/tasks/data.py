@@ -34,9 +34,11 @@ REMOTE_FILE_SOURCES = {
     'fips': 'http://geonames.nga.mil/gns/html/docs/GENC_ED3U7_GEC_XWALK.xlsx',
     'itu-t-e164': 'https://raw.githubusercontent.com/googlei18n/libphonenumber/master/resources/PhoneNumberMetadata.xml',
     'usa-census': 'https://www.census.gov/foreign-trade/schedules/c/country2.txt',
+    'exio-wiod-eora': 'https://raw.githubusercontent.com/konstantinstadler/country_converter/master/country_converter/country_data.tsv',
+    'ukgov': 'https://country.register.gov.uk/records.json'
 }
 
-SCRAPE_SOURCES = {
+CUSTOM_SCRAPE_SOURCES = {
     'edgar': 'https://www.sec.gov/edgar/searchedgar/edgarstatecodes.htm',
     'm49': 'https://unstats.un.org/unsd/methodology/m49/overview/',
 }
@@ -56,12 +58,14 @@ class Salt:
 
         After fetching/scraping and saving an upstream dataset,
         we then use hash of file contents as version salt in target filenames.
+
         Our salting tasks simply create a copy of the file with a new
         filename that includes salt. Since file contents are identical, we
         can use both/either the hash of file contents of the salted target
         and/or the hash of the file contents of salted target's requires()
+
         In cases where the salted target's required task is not complete,
-        descriptor returns a placeholder so luigi will know to run the task.
+        descriptor returns a placeholder ('tk') so luigi will know to run the task.
     """
     def __get__(self, task, cls):
         if task is None:
@@ -160,7 +164,7 @@ class EdgarSource(Task):
                           target_class=LocalTarget)
 
     def run(self):
-        url = SCRAPE_SOURCES.get(self.source)
+        url = CUSTOM_SCRAPE_SOURCES.get(self.source)
 
         content = urllib.request.urlopen(url).read()
         doc = html.fromstring(content)
@@ -226,7 +230,7 @@ class M49Source(Task):
                           target_class=LocalTarget)
 
     def run(self):
-        url = SCRAPE_SOURCES.get(self.source)
+        url = CUSTOM_SCRAPE_SOURCES.get(self.source)
 
         # TODO toggle shelf behavior with env var
         try:
