@@ -19,6 +19,8 @@ import argparse
 from luigi import build
 
 from .tasks import FileSources
+from .tasks import SaltedEdgarSource
+from .tasks import SaltedM49Source
 
 parser = argparse.ArgumentParser(description='Command description.')
 parser.add_argument('names', metavar='NAME', nargs=argparse.ZERO_OR_MORE,
@@ -30,4 +32,6 @@ def main(args=None):
     print(args.names)
     build([
         FileSources(),
+        SaltedEdgarSource(),
+        SaltedM49Source(),
     ], local_scheduler=True)

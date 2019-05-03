@@ -13,6 +13,9 @@ pset-utils = {editable = true,git = "https://github.com/csci-e-29/2019sp-pset-ut
 luigi = "*"
 pandas = "*"
 requests = "*"
+lxml = "*"
+html5lib = "*"
+bs4 = "*"
 
 [requires]
 python_version = "3.7"
