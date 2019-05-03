@@ -33,6 +33,7 @@ REMOTE_FILE_SOURCES = {
     'geonames': 'http://download.geonames.org/export/dump/countryInfo.txt',
     'fips': 'http://geonames.nga.mil/gns/html/docs/GENC_ED3U7_GEC_XWALK.xlsx',
     'itu-t-e164': 'https://raw.githubusercontent.com/googlei18n/libphonenumber/master/resources/PhoneNumberMetadata.xml',
+    'usa-census': 'https://www.census.gov/foreign-trade/schedules/c/country2.txt',
 }
 
 SCRAPE_SOURCES = {
