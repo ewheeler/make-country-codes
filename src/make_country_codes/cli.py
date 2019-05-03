@@ -19,6 +19,7 @@ import argparse
 from luigi import build
 
 from .tasks import FileSources
+from .tasks import STSSources
 from .tasks import SaltedEdgarSource
 from .tasks import SaltedM49Source
 
@@ -34,4 +35,5 @@ def main(args=None):
         FileSources(),
         SaltedEdgarSource(),
         SaltedM49Source(),
+        STSSources(),
     ], local_scheduler=True)

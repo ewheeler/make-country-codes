@@ -28,8 +28,11 @@ from pset_utils.luigi.task import TargetOutput
 REMOTE_FILE_SOURCES = {
     'unterm': 'https://protocol.un.org/dgacm/pls/site.nsf/files/Country%20Names%20UNTERM2/$FILE/UNTERM%20EFSRCA.xlsx',
     'iso4166': 'https://www.currency-iso.org/dam/downloads/lists/list_one.xml',
+    'marc': 'http://www.loc.gov/standards/codelists/countries.xml',
     'cldr': 'https://raw.githubusercontent.com/unicode-cldr/cldr-localenames-full/master/main/en/territories.json',
     'geonames': 'http://download.geonames.org/export/dump/countryInfo.txt',
+    'fips': 'http://geonames.nga.mil/gns/html/docs/GENC_ED3U7_GEC_XWALK.xlsx',
+    'itu-t-e164': 'https://raw.githubusercontent.com/googlei18n/libphonenumber/master/resources/PhoneNumberMetadata.xml',
 }
 
 SCRAPE_SOURCES = {
@@ -38,11 +41,34 @@ SCRAPE_SOURCES = {
 }
 
 
+SIMPLE_TABLE_SCRAPE_SOURCES = {
+    'ituglad': 'https://www.itu.int/gladapp/GeographicalArea/List',
+    'fao': 'http://www.fao.org/countryprofiles/iso3list/en/',
+    'fifa-ioc': 'https://simple.wikipedia.org/wiki/Comparison_of_IOC,_FIFA,_and_ISO_3166_country_codes',
+    'tld': 'https://www.iana.org/domains/root/db',
+}
+
+
 class Salt:
+    """
+        Hacky descriptor used for salting upstream data.
+
+        After fetching/scraping and saving an upstream dataset,
+        we then use hash of file contents as version salt in target filenames.
+        Our salting tasks simply create a copy of the file with a new
+        filename that includes salt. Since file contents are identical, we
+        can use both/either the hash of file contents of the salted target
+        and/or the hash of the file contents of salted target's requires()
+        In cases where the salted target's required task is not complete,
+        descriptor returns a placeholder so luigi will know to run the task.
+    """
     def __get__(self, task, cls):
         if task is None:
             return self
-        return get_salt_for_task(task.requires())
+        if task.requires().complete():
+            return get_salt_for_task(task.requires())
+        else:
+            return 'tk'
 
     def __call__(self, task):
         """Returns the salt (chars of sha256 checksum) of task's output file
@@ -252,15 +278,19 @@ class M49Source(Task):
                      'Developed / Developing Countries']
 
         # remove repeated, non-localized columns
+        # from all dataframes except one
         pruned = [(lang, frame.drop([c for c in non_local],
                                      inplace=True, axis=1))
                    for lang, frame in frames_tuples if lang != 'en']
 
-        # merge dataframes
+        # reduce frames_tuples:
+        # - merge dataframes on 'M49 Code' column
+        # - add language suffixes to column names
         merged = reduce(lambda left, right:
                         (right[0], pd.merge(left[1], right[1],
                                            on='M49 Code',
-                                           suffixes=('_' + left[0], '_' + right[0]))), frames_tuples)
+                                           suffixes=('_' + left[0], '_' + right[0]))),
+                        frames_tuples)
 
         with self.output().open('w') as f:
             merged[1].to_csv(f, index=False)
@@ -285,3 +315,59 @@ class SaltedM49Source(Task):
     def run(self):
         salt = get_salt_for_task(self.requires())
         self.requires().output().copy(self.output().path)
+
+
+class SimpleTableScrapeSource(Task):
+    __version__ = '0.1'
+    DATA_ROOT = 'data/'
+    source = Parameter()
+    ext = Parameter(default='.csv')
+
+    pattern = '{task.__class__.__name__}-{task.source}{task.ext}'
+    output = TargetOutput(file_pattern=pattern, ext='',
+                          base_dir=DATA_ROOT,
+                          target_class=LocalTarget)
+
+    def run(self):
+        url = SIMPLE_TABLE_SCRAPE_SOURCES.get(self.source)
+        # TODO toggle shelf behavior with env var
+        try:
+            shelf = shelve.open('tmpdb')
+            content = shelf[self.source]
+        except KeyError:
+            content = urllib.request.urlopen(url).read()
+            shelf[self.source] = str(content)
+        finally:
+            shelf.close()
+
+        df = pd.read_html(content, header=0)
+        with self.output().open('w') as f:
+            df[0].to_csv(f, index=False)
+
+
+class SaltedSTSSource(Task):
+    __version__ = '0.1'
+    DATA_ROOT = 'data/'
+
+    source = Parameter()
+    ext = Parameter(default='.csv')
+    salt = Salt()
+
+    def requires(self):
+        return SimpleTableScrapeSource(source=self.source, ext=self.ext)
+
+    pattern = '{task.__class__.__name__}-{task.source}-{task.salt}{task.ext}'
+    output = TargetOutput(file_pattern=pattern, ext='',
+                          base_dir=DATA_ROOT,
+                          target_class=LocalTarget)
+
+    def run(self):
+        salt = get_salt_for_task(self.requires())
+        self.requires().output().copy(self.output().path)
+
+
+class STSSources(WrapperTask):
+
+    def requires(self):
+        for slug, url in SIMPLE_TABLE_SCRAPE_SOURCES.items():
+            yield SaltedSTSSource(source=slug, ext='.csv')
