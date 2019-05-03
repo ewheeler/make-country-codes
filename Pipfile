@@ -16,6 +16,7 @@ requests = "*"
 lxml = "*"
 html5lib = "*"
 bs4 = "*"
+xlrd = "*"
 
 [requires]
 python_version = "3.7"
