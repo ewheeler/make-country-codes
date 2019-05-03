@@ -19,6 +19,7 @@ import argparse
 from luigi import build
 
 from .tasks.data import SaltedSources
+from .tasks.assemble import UNCodes
 
 parser = argparse.ArgumentParser(description='Command description.')
 parser.add_argument('names', metavar='NAME', nargs=argparse.ZERO_OR_MORE,
@@ -30,4 +31,5 @@ def main(args=None):
     print(args.names)
     build([
         SaltedSources(),
+        UNCodes(),
     ], local_scheduler=True)
