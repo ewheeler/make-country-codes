@@ -42,7 +42,6 @@ class UNCodes(Task):
                              lambda x: swap(norm(x))
                            }
         # UN Protocol liason office needs to update their names!
-        # TODO cote d'ivoire is not matching.. Côte d'Ivoire
         unterm_replacements = {
             "Czech Republic": "Czechia",
             "Swaziland": "Eswatini",
