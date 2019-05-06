@@ -24,7 +24,7 @@ from .data import DEV_MODE
 
 class UNCodes(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/sources/'
+    DATA_ROOT = 'build/'
 
     pattern = '{task.__class__.__name__}'
     output = TargetOutput(file_pattern=pattern, ext='.csv',
@@ -79,7 +79,7 @@ class UNCodes(Task):
 
 class iso4217(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/sources/'
+    DATA_ROOT = 'build/'
 
     pattern = '{task.__class__.__name__}'
     output = TargetOutput(file_pattern=pattern, ext='.csv',
@@ -148,7 +148,7 @@ class iso4217(Task):
 
 class marc(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/sources/'
+    DATA_ROOT = 'build/'
 
     pattern = '{task.__class__.__name__}'
     output = TargetOutput(file_pattern=pattern, ext='.csv',
@@ -190,7 +190,7 @@ class marc(Task):
 
 class ukgov(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/sources/'
+    DATA_ROOT = 'build/'
 
     pattern = '{task.__class__.__name__}'
     output = TargetOutput(file_pattern=pattern, ext='.csv',
@@ -212,7 +212,7 @@ class ukgov(Task):
 
 class cldr(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/sources/'
+    DATA_ROOT = 'build/'
 
     pattern = '{task.__class__.__name__}'
     output = TargetOutput(file_pattern=pattern, ext='.csv',
@@ -253,7 +253,7 @@ class cldr(Task):
 
 class CountryCodes(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/package/data/'
+    DATA_ROOT = 'build/'
 
     pattern = 'country-codes'
     output = TargetOutput(file_pattern=pattern, ext='.csv',
@@ -402,7 +402,7 @@ class CountryCodes(Task):
 
 class Datapackage(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/package/'
+    DATA_ROOT = 'build'
 
     pattern = 'datapackage'
     output = TargetOutput(file_pattern=pattern, ext='.json',
