@@ -26,14 +26,15 @@ from pset_utils.luigi.task import Requires
 from pset_utils.luigi.task import Requirement
 from pset_utils.luigi.task import TargetOutput
 
+USE_SHELVE = os.environ.get('USE_SHELVE')
+DEV_MODE = os.environ.get('DEV_MODE')
 
 REMOTE_FILE_SOURCES = {
     'unterm': 'https://protocol.un.org/dgacm/pls/site.nsf/files/Country%20Names%20UNTERM2/$FILE/UNTERM%20EFSRCA.xlsx',
-    'iso4166': 'https://www.currency-iso.org/dam/downloads/lists/list_one.xml',
+    'iso4217': 'https://www.currency-iso.org/dam/downloads/lists/list_one.xml',
     'marc': 'http://www.loc.gov/standards/codelists/countries.xml',
     'cldr': 'https://raw.githubusercontent.com/unicode-cldr/cldr-localenames-full/master/main/en/territories.json',
     'geonames': 'http://download.geonames.org/export/dump/countryInfo.txt',
-    'fips': 'http://geonames.nga.mil/gns/html/docs/GENC_ED3U7_GEC_XWALK.xlsx',
     'itu-t-e164': 'https://raw.githubusercontent.com/googlei18n/libphonenumber/master/resources/PhoneNumberMetadata.xml',
     'usa-census': 'https://www.census.gov/foreign-trade/schedules/c/country2.txt',
     'exio-wiod-eora': 'https://raw.githubusercontent.com/konstantinstadler/country_converter/master/country_converter/country_data.tsv',
@@ -50,7 +51,6 @@ SIMPLE_TABLE_SCRAPE_SOURCES = {
     'itu-glad': 'https://www.itu.int/gladapp/GeographicalArea/List',
     'fao': 'http://www.fao.org/countryprofiles/iso3list/en/',
     'fifa-ioc': 'https://simple.wikipedia.org/wiki/Comparison_of_IOC,_FIFA,_and_ISO_3166_country_codes',
-    'tld': 'https://www.iana.org/domains/root/db',
 }
 
 
@@ -72,7 +72,7 @@ class Salt:
     def __get__(self, task, cls):
         if task is None:
             return self
-        if task.requires().complete():
+        if task.requires().get('source').complete():
             return get_salt_for_task(task.requires())
         else:
             return 'tk'
@@ -81,7 +81,7 @@ class Salt:
         """Returns the salt (chars of sha256 checksum) of task's output file
 
         :returns: first six chars of sha256 hexdigest of contents of `task.output()`
-        :rtype: str 
+        :rtype: str
         """
         return get_salt_for_task(task)
 
@@ -89,7 +89,8 @@ class Salt:
 def get_salt_for_task(task):
     checksum = hashlib.sha256()
     # TODO read and hash in chunks
-    with task.output().open('r') as f:
+
+    with task.get('source').output().open('r') as f:
         checksum.update(bytes_pls(f.read()))
     return checksum.hexdigest()[:6]
 
@@ -104,17 +105,17 @@ class FileSource(Task):
     __version__ = '0.1'
     DATA_ROOT = 'data/'
 
-    source = Parameter()
+    slug = Parameter()
     ext = Parameter()
 
-    pattern = '{task.__class__.__name__}-{task.source}{task.ext}'
+    pattern = '{task.__class__.__name__}-{task.slug}{task.ext}'
     output = TargetOutput(file_pattern=pattern, ext='',
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget,
                           format=format.Nop)
 
     def run(self):
-        url = REMOTE_FILE_SOURCES.get(self.source)
+        url = REMOTE_FILE_SOURCES.get(self.slug)
         luigi_logger.debug(url)
 
         with requests.get(url, stream=True) as r:
@@ -122,7 +123,7 @@ class FileSource(Task):
             if r.encoding is None:
                 r.encoding = 'utf-8'
             with self.output().open('w') as f:
-                for chunk in r.iter_content(chunk_size=128, decode_unicode=True):
+                for chunk in r.iter_content(chunk_size=128):
                     f.write(bytes_pls(chunk))
 
 
@@ -130,14 +131,18 @@ class SaltedFileSource(Task):
     __version__ = '0.1'
     DATA_ROOT = 'data/'
 
-    source = Parameter()
+    slug = Parameter()
     ext = Parameter()
     salt = Salt()
 
-    def requires(self):
-        return FileSource(source=self.source, ext=self.ext)
+    if DEV_MODE:
+        def requires(self):
+            return {'source': FileSource(slug=self.slug, ext=self.ext)}
+    else:
+        requires = Requires()
+        source = Requirement(FileSource, slug=slug, ext=ext)
 
-    pattern = '{task.__class__.__name__}-{task.source}-{task.salt}{task.ext}'
+    pattern = '{task.__class__.__name__}-{task.slug}-{task.salt}{task.ext}'
     output = TargetOutput(file_pattern=pattern, ext='',
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget,
@@ -145,30 +150,22 @@ class SaltedFileSource(Task):
 
     def run(self):
         salt = get_salt_for_task(self.requires())
-        self.requires().output().copy(self.output().path)
-
-
-class SaltedSources(WrapperTask):
-
-    def requires(self):
-        for slug, url in REMOTE_FILE_SOURCES.items():
-            _, ext = os.path.splitext(url)
-            yield SaltedFileSource(source=slug, ext=ext)
+        self.requires().get('source').output().copy(self.output().path)
 
 
 class EdgarSource(Task):
     __version__ = '0.1'
     DATA_ROOT = 'data/'
-    source = Parameter(default='Edgar')
+    slug = Parameter(default='Edgar')
     ext = Parameter(default='.csv')
 
-    pattern = '{task.__class__.__name__}-{task.source}{task.ext}'
+    pattern = '{task.__class__.__name__}-{task.slug}{task.ext}'
     output = TargetOutput(file_pattern=pattern, ext='',
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
     def run(self):
-        url = CUSTOM_SCRAPE_SOURCES.get(self.source)
+        url = CUSTOM_SCRAPE_SOURCES.get(self.slug)
 
         content = urllib.request.urlopen(url).read()
         doc = html.fromstring(content)
@@ -205,46 +202,52 @@ class SaltedEdgarSource(Task):
     __version__ = '0.1'
     DATA_ROOT = 'data/'
 
-    source = Parameter(default='Edgar')
+    slug = Parameter(default='Edgar')
     ext = Parameter(default='.csv')
     salt = Salt()
 
-    def requires(self):
-        return EdgarSource(source=self.source, ext=self.ext)
+    if DEV_MODE:
+        def requires(self):
+            return {'source': EdgarSource(slug=self.slug, ext=self.ext)}
+    else:
+        requires = Requires()
+        source = Requirement(EdgarSource, slug=slug, ext=ext)
 
-    pattern = '{task.__class__.__name__}-{task.source}-{task.salt}{task.ext}'
+    pattern = '{task.__class__.__name__}-{task.slug}-{task.salt}{task.ext}'
     output = TargetOutput(file_pattern=pattern, ext='',
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
     def run(self):
         salt = get_salt_for_task(self.requires())
-        self.requires().output().copy(self.output().path)
+        self.requires().get('source').output().copy(self.output().path)
 
 
 class M49Source(Task):
     __version__ = '0.1'
     DATA_ROOT = 'data/'
-    source = Parameter(default='M49')
+    slug = Parameter(default='M49')
     ext = Parameter(default='.csv')
 
-    pattern = '{task.__class__.__name__}-{task.source}{task.ext}'
+    pattern = '{task.__class__.__name__}-{task.slug}{task.ext}'
     output = TargetOutput(file_pattern=pattern, ext='',
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
     def run(self):
-        url = CUSTOM_SCRAPE_SOURCES.get(self.source)
+        url = CUSTOM_SCRAPE_SOURCES.get(self.slug)
 
-        # TODO toggle shelf behavior with env var
-        try:
-            shelf = shelve.open('tmpdb')
-            content = shelf['M49']
-        except KeyError:
+        if USE_SHELVE:
+            try:
+                shelf = shelve.open('tmpdb')
+                content = shelf['M49']
+            except KeyError:
+                content = urllib.request.urlopen(url).read()
+                shelf['M49'] = content
+            finally:
+                shelf.close()
+        else:
             content = urllib.request.urlopen(url).read()
-            shelf['M49'] = content
-        finally:
-            shelf.close()
 
         tables = {'en': 'downloadTableEN', 'cn': 'downloadTableZH',
                   'ru': 'downloadTableRU', 'fr': 'downloadTableFR',
@@ -265,18 +268,20 @@ class M49Source(Task):
                               header=0, converters=converters)
             return df[0]
 
-        # TODO toggle shelf behavior with env var
-        try:
-            shelf = shelve.open('tmpdb')
-            frames_tuples = shelf['m49-frames_tuples']
-        except KeyError:
-            # read the 6 html tables into dataframes,
-            # arrange dataframes in list of 2-item tuples
-            # like [('language', dataframe),...]
+        if USE_SHELVE:
+            try:
+                shelf = shelve.open('tmpdb')
+                frames_tuples = shelf['m49-frames_tuples']
+            except KeyError:
+                # read the 6 html tables into dataframes,
+                # arrange dataframes in list of 2-item tuples
+                # like [('language', dataframe),...]
+                frames_tuples = [(lang, read_table(lang, table)) for lang, table in tables.items()]
+                shelf['m49-frames_tuples'] = frames_tuples
+            finally:
+                shelf.close()
+        else:
             frames_tuples = [(lang, read_table(lang, table)) for lang, table in tables.items()]
-            shelf['m49-frames_tuples'] = frames_tuples
-        finally:
-            shelf.close()
 
         # values in these columns are the same in any language
         # (excluding `M49 Code` bc we need it to merge dataframes)
@@ -310,45 +315,51 @@ class SaltedM49Source(Task):
     __version__ = '0.1'
     DATA_ROOT = 'data/'
 
-    source = Parameter(default='M49')
+    slug = Parameter(default='M49')
     ext = Parameter(default='.csv')
     salt = Salt()
 
-    def requires(self):
-        return M49Source(source=self.source, ext=self.ext)
+    if DEV_MODE:
+        def requires(self):
+            return {'source': M49Source(slug=self.slug, ext=self.ext)}
+    else:
+        requires = Requires()
+        source = Requirement(M49Source, slug=slug, ext=ext)
 
-    pattern = '{task.__class__.__name__}-{task.source}-{task.salt}{task.ext}'
+    pattern = '{task.__class__.__name__}-{task.slug}-{task.salt}{task.ext}'
     output = TargetOutput(file_pattern=pattern, ext='',
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
     def run(self):
         salt = get_salt_for_task(self.requires())
-        self.requires().output().copy(self.output().path)
+        self.requires().get('source').output().copy(self.output().path)
 
 
 class SimpleTableScrapeSource(Task):
     __version__ = '0.1'
     DATA_ROOT = 'data/'
-    source = Parameter()
+    slug = Parameter()
     ext = Parameter(default='.csv')
 
-    pattern = '{task.__class__.__name__}-{task.source}{task.ext}'
+    pattern = '{task.__class__.__name__}-{task.slug}{task.ext}'
     output = TargetOutput(file_pattern=pattern, ext='',
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
     def run(self):
-        url = SIMPLE_TABLE_SCRAPE_SOURCES.get(self.source)
-        # TODO toggle shelf behavior with env var
-        try:
-            shelf = shelve.open('tmpdb')
-            content = shelf[self.source]
-        except KeyError:
+        url = SIMPLE_TABLE_SCRAPE_SOURCES.get(self.slug)
+        if USE_SHELVE:
+            try:
+                shelf = shelve.open('tmpdb')
+                content = shelf[self.slug]
+            except KeyError:
+                content = urllib.request.urlopen(url).read()
+                shelf[self.slug] = str(content)
+            finally:
+                shelf.close()
+        else:
             content = urllib.request.urlopen(url).read()
-            shelf[self.source] = str(content)
-        finally:
-            shelf.close()
 
         df = pd.read_html(content, header=0)
         with self.output().open('w') as f:
@@ -359,21 +370,25 @@ class SaltedSTSSource(Task):
     __version__ = '0.1'
     DATA_ROOT = 'data/'
 
-    source = Parameter()
+    slug = Parameter()
     ext = Parameter(default='.csv')
     salt = Salt()
 
-    def requires(self):
-        return SimpleTableScrapeSource(source=self.source, ext=self.ext)
+    if DEV_MODE:
+        def requires(self):
+            return {'source': SimpleTableScrapeSource(slug=self.slug, ext=self.ext)}
+    else:
+        requires = Requires()
+        source = Requirement(SimpleTableScrapeSource, slug=slug, ext=ext)
 
-    pattern = '{task.__class__.__name__}-{task.source}-{task.salt}{task.ext}'
+    pattern = '{task.__class__.__name__}-{task.slug}-{task.salt}{task.ext}'
     output = TargetOutput(file_pattern=pattern, ext='',
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
     def run(self):
         salt = get_salt_for_task(self.requires())
-        self.requires().output().copy(self.output().path)
+        self.requires().get('source').output().copy(self.output().path)
 
 
 class SaltedSources(WrapperTask):
@@ -381,10 +396,10 @@ class SaltedSources(WrapperTask):
     def requires(self):
         for slug, url in REMOTE_FILE_SOURCES.items():
             _, ext = os.path.splitext(url)
-            yield SaltedFileSource(source=slug, ext=ext)
+            yield SaltedFileSource(slug=slug, ext=ext)
 
         for slug, url in SIMPLE_TABLE_SCRAPE_SOURCES.items():
-            yield SaltedSTSSource(source=slug, ext='.csv')
+            yield SaltedSTSSource(slug=slug, ext='.csv')
 
         for slug, url in CUSTOM_SCRAPE_SOURCES.items():
-            yield load_task(__name__, f'Salted{slug}Source', {'source': slug, 'ext': '.csv'})
+            yield load_task(__name__, f'Salted{slug}Source', {'slug': slug, 'ext': '.csv'})
