@@ -332,10 +332,10 @@ class MergeTabular(Task):
 
         fifa = pd.read_csv(self.requires().get('fifa-ioc').output().path,
                            keep_default_na=False, na_values=['_'],
-                           converters={'ISO\\n': lambda x: re.sub(r'\\n|\[\d+\]', '', x),
-                                       'Country\\n': lambda x: re.sub(r'\[\d+\]', '', x),
+                           converters={'ISO': lambda x: re.sub(r'\\n|\[\d+\]', '', x),
+                                       'Country': lambda x: re.sub(r'\[\d+\]', '', x),
                            })
-        fifa.drop('Flag\\n', inplace=True, axis=1)
+        fifa.drop('Flag', inplace=True, axis=1)
         fifa = fifa.add_suffix(' (fifa-ioc)')
 
         # join on ISO 3166 alpha 3 codes
@@ -349,7 +349,7 @@ class MergeTabular(Task):
 
         combined = pd.merge(combined, fifa, how='outer',
                             left_on='ISO-alpha3 Code (M49)',
-                            right_on='ISO\\n (fifa-ioc)')
+                            right_on='ISO (fifa-ioc)')
 
         # join on ISO 3166 alpha 2 codes
         combined  = pd.merge(combined, geonames, how='outer',
