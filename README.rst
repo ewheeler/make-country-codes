@@ -10,7 +10,7 @@ Overview
     * - docs
       - |docs|
     * - tests
-      - | |travis| |appveyor|
+      - | |travis| |goodtables|
         |
     * - package
       - | |version| |wheel| |supported-versions| |supported-implementations|
@@ -23,9 +23,9 @@ Overview
     :alt: Travis-CI Build Status
     :target: https://travis-ci.org/ewheeler/make-country-codes
 
-.. |appveyor| image:: https://ci.appveyor.com/api/projects/status/github/ewheeler/make-country-codes?branch=master&svg=true
-    :alt: AppVeyor Build Status
-    :target: https://ci.appveyor.com/project/ewheeler/make-country-codes
+.. |goodtables| image:: https://goodtables.io/badge/github/ewheeler/make-country-codes.svg
+    :alt: Goodtables Build Status
+    :target: https://goodtables.io/github/ewheeler/make-country-codes
 
 .. |version| image:: https://img.shields.io/pypi/v/make-country-codes.svg
     :alt: PyPI Package latest release
