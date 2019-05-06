@@ -9,7 +9,6 @@ pytest-cov = "*"
 
 [packages]
 make_country_codes = {editable = true,path = "."}
-pset-utils = {editable = true,git = "https://github.com/csci-e-29/2019sp-pset-utils-ewheeler"}
 luigi = "*"
 pandas = "*"
 requests = "*"

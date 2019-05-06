@@ -2,7 +2,6 @@ import shelve
 import os
 import csv
 import urllib
-import hashlib
 from functools import reduce
 
 from luigi import format
@@ -17,8 +16,10 @@ import requests
 from lxml import html
 import pandas as pd
 
-from pset_utils.hash.hash_str import bytes_pls
-from pset_utils.luigi.task import TargetOutput
+from ..utils import bytes_pls
+from ..utils import clean
+from ..utils import sha256sum
+from ..utils import TargetOutput
 
 #USE_SHELVE = os.environ.get('USE_SHELVE')
 #DEV_MODE = os.environ.get('DEV_MODE')
@@ -47,6 +48,7 @@ SIMPLE_TABLE_SCRAPE_SOURCES = {
     'fao': 'http://www.fao.org/countryprofiles/iso3list/en/',
     'fifa-ioc': 'https://simple.wikipedia.org/wiki/Comparison_of_IOC,_FIFA,_and_ISO_3166_country_codes',
 }
+
 SOURCES = [
     {
         'name': 'unterm',
@@ -116,52 +118,6 @@ SOURCES = [
 ]
 
 
-class Salt:
-    """
-        Hacky descriptor used for salting upstream data.
-
-        After fetching/scraping and saving an upstream dataset,
-        we then use hash of file contents as version salt in target filenames.
-
-        Our salting tasks simply create a copy of the file with a new
-        filename that includes salt. Since file contents are identical, we
-        can use both/either the hash of file contents of the salted target
-        and/or the hash of the file contents of salted target's requires()
-
-        In cases where the salted target's required task is not complete,
-        descriptor returns a placeholder ('tk') so luigi will know to run the task.
-    """
-    def __get__(self, task, cls):
-        if task is None:
-            return self
-        if task.requires().get('source').complete():
-            return get_salt_for_task(task.requires())
-        else:
-            return 'tk'
-
-    def __call__(self, task):
-        """Returns the salt (chars of sha256 checksum) of task's output file
-
-        :returns: first six chars of sha256 hexdigest of contents of `task.output()`
-        :rtype: str
-        """
-        return get_salt_for_task(task)
-
-
-def get_salt_for_task(task):
-    checksum = hashlib.sha256()
-    # TODO read and hash in chunks
-
-    with task.get('source').output().open('r') as f:
-        checksum.update(bytes_pls(f.read()))
-    return checksum.hexdigest()[:6]
-
-replacements = (u'\xa0', u''), (u'\n', u''), (u'\r', u'')
-
-def clean(word):
-    reduce(lambda a, kv: a.replace(*kv), replacements, word)
-    return " ".join(word.split())
-
 
 class FileSource(Task):
     __version__ = '0.1'
@@ -195,7 +151,7 @@ class SaltedFileSource(Task):
 
     slug = Parameter()
     ext = Parameter()
-    salt = Salt()
+    salt = sha256sum()
 
     def requires(self):
         return {'source': FileSource(slug=self.slug, ext=self.ext)}
@@ -207,7 +163,6 @@ class SaltedFileSource(Task):
                           format=format.Nop)
 
     def run(self):
-        salt = get_salt_for_task(self.requires())
         self.requires().get('source').output().copy(self.output().path)
 
 
@@ -262,7 +217,7 @@ class SaltedEdgarSource(Task):
 
     slug = Parameter(default='Edgar')
     ext = Parameter(default='.csv')
-    salt = Salt()
+    salt = sha256sum()
 
     def requires(self):
         return {'source': EdgarSource(slug=self.slug, ext=self.ext)}
@@ -372,7 +327,7 @@ class SaltedM49Source(Task):
 
     slug = Parameter(default='M49')
     ext = Parameter(default='.csv')
-    salt = Salt()
+    salt = sha256sum()
 
     def requires(self):
         return {'source': M49Source(slug=self.slug, ext=self.ext)}
@@ -423,7 +378,7 @@ class SaltedSTSSource(Task):
 
     slug = Parameter()
     ext = Parameter(default='.csv')
-    salt = Salt()
+    salt = sha256sum()
 
     def requires(self):
         return {'source': SimpleTableScrapeSource(slug=self.slug, ext=self.ext)}
@@ -434,7 +389,6 @@ class SaltedSTSSource(Task):
                           target_class=LocalTarget)
 
     def run(self):
-        salt = get_salt_for_task(self.requires())
         self.requires().get('source').output().copy(self.output().path)
 
 

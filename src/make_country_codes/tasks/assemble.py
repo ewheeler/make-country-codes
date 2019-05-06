@@ -10,7 +10,9 @@ import pandas as pd
 from lxml import objectify
 from datapackage import Package
 
-from pset_utils.luigi.task import TargetOutput
+from ..utils import TargetOutput
+from ..utils import convert_numeric_code_with_pad
+from ..utils import convert_numeric_code
 
 from .data import SaltedFileSource
 from .data import SaltedSTSSource
@@ -18,28 +20,6 @@ from .data import SaltedM49Source
 from .data import SaltedEdgarSource
 from .data import SOURCES
 from .data import DEV_MODE
-
-
-def convert_numeric_code_with_pad(x):
-    """
-    Codes like M49 and ISO 3166 numeric should be
-    treated as strings, as their leading zeros are
-    meaningful and must be preserved.
-    """
-    try:
-        return str(int(x)).zfill(3)
-    except ValueError:
-        return ''
-
-def convert_numeric_code(x):
-    """
-    Some numeric codes should be treated as strings,
-    but don't need leading 0s
-    """
-    try:
-        return str(int(x))
-    except ValueError:
-        return ''
 
 
 class UNCodes(Task):

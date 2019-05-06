@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "1e88efa7982236c2fe7e76e877b5121a357c8bb14fce82519ad45096cb8c18c6"
+            "sha256": "ae91ed06cc0c3b8f927fcd1283e3e722af7e8a154a9dc816585d630a3661546f"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -16,13 +16,6 @@
         ]
     },
     "default": {
-        "atomicwrites": {
-            "hashes": [
-                "sha256:03472c30eb2c5d1ba9227e4c2ca66ab8287fbfbbda3888aa93dc2e28fc6811b4",
-                "sha256:75a9445bac02d8d058d5e1fe689654ba5a6556a1dfd8ce6ec55a0ed79866cfa6"
-            ],
-            "version": "==1.3.0"
-        },
         "attrs": {
             "hashes": [
                 "sha256:69c0dbf2ed392de1cb5ec704444b08a5ef81680a61cb899dc08127123af36a79",
@@ -93,23 +86,6 @@
                 "sha256:5b94b49521f6456670fdb30cd82a4eca9412788a93fa6dd6df72c94d5a8ff2d7"
             ],
             "version": "==7.0"
-        },
-        "cloudpickle": {
-            "hashes": [
-                "sha256:c5646e5deed598dc6281e721d8a85fff032b4bcfa3a3178ab9e9f125cc22e82a",
-                "sha256:f1615ab5d1e29cc4b962a6452590e8c857c92d955e2c1172521fb3779d7feffa"
-            ],
-            "version": "==1.0.0"
-        },
-        "dask": {
-            "extras": [
-                "dataframe"
-            ],
-            "hashes": [
-                "sha256:34c40c5d3a7acef08e6b819a30b01a1a83bfb4a369884d906c29c834619a84d4",
-                "sha256:790992db4f73c9b3e0c1a0c36f61793aa71cd4454bb78507fa171c86cba16f03"
-            ],
-            "version": "==1.2.1"
         },
         "datapackage": {
             "hashes": [
@@ -195,12 +171,6 @@
                 "sha256:b504d78f4075615ae75de86a16e5680701a441fc84da2a2cf9f94351ab1ccbf5"
             ],
             "version": "==1.1.0"
-        },
-        "locket": {
-            "hashes": [
-                "sha256:1fee63c1153db602b50154684f5725564e63a0f6d09366a1cb13dffcec179fb4"
-            ],
-            "version": "==0.2.0"
         },
         "lockfile": {
             "hashes": [
@@ -312,18 +282,6 @@
             "index": "pypi",
             "version": "==0.24.2"
         },
-        "partd": {
-            "hashes": [
-                "sha256:33722a228ebcd1fa6f44b1631bdd4cff056376f89eb826d7d880b35b637bcfba",
-                "sha256:826e8034dc1503005f86b67c8542bc8c71cc35b33741b413e82d25a09cc26ad9"
-            ],
-            "version": "==0.3.10"
-        },
-        "pset-utils": {
-            "editable": true,
-            "git": "https://github.com/csci-e-29/2019sp-pset-utils-ewheeler",
-            "ref": "898396e123b68f1722567df1106237b9d3c4d1df"
-        },
         "pyrsistent": {
             "hashes": [
                 "sha256:5403d37f4d55ff4572b5b5676890589f367a9569529c6f728c11046c4ea4272b"
@@ -399,12 +357,6 @@
                 "sha256:5eebe79427f593a4eed4f838ab46f81babcff42b4ebba12c5b350128ad508e71"
             ],
             "version": "==1.20.0"
-        },
-        "toolz": {
-            "hashes": [
-                "sha256:929f0a7ea7f61c178bd951bdae93920515d3fbdbafc8e6caf82d752b9b3b31c9"
-            ],
-            "version": "==0.9.0"
         },
         "tornado": {
             "hashes": [
