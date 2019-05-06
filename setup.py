@@ -59,6 +59,8 @@ setup(
         # eg: 'keyword1', 'keyword2', 'keyword3',
     ],
     python_requires='>=3.6',
+    use_scm_version=True,
+    setup_requires=['setuptools_scm'],
     install_requires=[
         # eg: 'aspectlib==1.1.1', 'six>=1.7',
     ],
