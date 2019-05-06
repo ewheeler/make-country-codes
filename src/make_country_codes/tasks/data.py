@@ -22,8 +22,6 @@ from lxml import html
 import pandas as pd
 
 from pset_utils.hash.hash_str import bytes_pls
-from pset_utils.luigi.task import Requires
-from pset_utils.luigi.task import Requirement
 from pset_utils.luigi.task import TargetOutput
 
 USE_SHELVE = os.environ.get('USE_SHELVE')
@@ -135,12 +133,8 @@ class SaltedFileSource(Task):
     ext = Parameter()
     salt = Salt()
 
-    if DEV_MODE:
-        def requires(self):
-            return {'source': FileSource(slug=self.slug, ext=self.ext)}
-    else:
-        requires = Requires()
-        source = Requirement(FileSource, slug=slug, ext=ext)
+    def requires(self):
+        return {'source': FileSource(slug=self.slug, ext=self.ext)}
 
     pattern = '{task.__class__.__name__}-{task.slug}-{task.salt}{task.ext}'
     output = TargetOutput(file_pattern=pattern, ext='',
@@ -206,12 +200,8 @@ class SaltedEdgarSource(Task):
     ext = Parameter(default='.csv')
     salt = Salt()
 
-    if DEV_MODE:
-        def requires(self):
-            return {'source': EdgarSource(slug=self.slug, ext=self.ext)}
-    else:
-        requires = Requires()
-        source = Requirement(EdgarSource, slug=slug, ext=ext)
+    def requires(self):
+        return {'source': EdgarSource(slug=self.slug, ext=self.ext)}
 
     pattern = '{task.__class__.__name__}-{task.slug}-{task.salt}{task.ext}'
     output = TargetOutput(file_pattern=pattern, ext='',
@@ -319,12 +309,8 @@ class SaltedM49Source(Task):
     ext = Parameter(default='.csv')
     salt = Salt()
 
-    if DEV_MODE:
-        def requires(self):
-            return {'source': M49Source(slug=self.slug, ext=self.ext)}
-    else:
-        requires = Requires()
-        source = Requirement(M49Source, slug=slug, ext=ext)
+    def requires(self):
+        return {'source': M49Source(slug=self.slug, ext=self.ext)}
 
     pattern = '{task.__class__.__name__}-{task.slug}-{task.salt}{task.ext}'
     output = TargetOutput(file_pattern=pattern, ext='',
@@ -374,12 +360,8 @@ class SaltedSTSSource(Task):
     ext = Parameter(default='.csv')
     salt = Salt()
 
-    if DEV_MODE:
-        def requires(self):
-            return {'source': SimpleTableScrapeSource(slug=self.slug, ext=self.ext)}
-    else:
-        requires = Requires()
-        source = Requirement(SimpleTableScrapeSource, slug=slug, ext=ext)
+    def requires(self):
+        return {'source': SimpleTableScrapeSource(slug=self.slug, ext=self.ext)}
 
     pattern = '{task.__class__.__name__}-{task.slug}-{task.salt}{task.ext}'
     output = TargetOutput(file_pattern=pattern, ext='',

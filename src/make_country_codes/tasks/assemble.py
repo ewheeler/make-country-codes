@@ -15,8 +15,6 @@ from lxml import objectify
 
 from pset_utils.luigi.task import TargetOutput
 
-from pset_utils.luigi.task import Requires
-from pset_utils.luigi.task import Requirement
 from .data import SaltedFileSource
 from .data import SaltedSTSSource
 from .data import SaltedM49Source
@@ -53,14 +51,10 @@ class UNCodes(Task):
     output = TargetOutput(file_pattern=pattern, ext='.csv',
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
-    if DEV_MODE:
-        def requires(self):
-            return {'unterm': SaltedFileSource('unterm', '.xlsx'),
-                    'M49': SaltedM49Source('M49')}
-    else:
-        requires = Requires()
-        unterm = Requirement(SaltedFileSource, slug='unterm', ext='.xlsx')
-        M49 = Requirement(SaltedM49Source, slug='M49')
+
+    def requires(self):
+        return {'unterm': SaltedFileSource('unterm', '.xlsx'),
+                'M49': SaltedM49Source('M49')}
 
     def run(self):
         # Namibia's 2 letter codes are often `NA`, so setting
@@ -112,12 +106,9 @@ class iso4217(Task):
     output = TargetOutput(file_pattern=pattern, ext='.csv',
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
-    if DEV_MODE:
-        def requires(self):
-            return {'iso4217': SaltedFileSource(slug='iso4217', ext='.xml'),}
-    else:
-        requires = Requires()
-        iso4217 = Requirement(SaltedFileSource, slug='iso4217', ext='.xml')
+
+    def requires(self):
+        return {'iso4217': SaltedFileSource(slug='iso4217', ext='.xml'),}
 
     def run(self):
         as_xml = objectify.parse(self.requires().get('iso4217').output().path)
@@ -177,12 +168,9 @@ class marc(Task):
     output = TargetOutput(file_pattern=pattern, ext='.csv',
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
-    if DEV_MODE:
-        def requires(self):
-            return {'marc': SaltedFileSource(slug='marc', ext='.xml'),}
-    else:
-        requires = Requires()
-        marc = Requirement(SaltedFileSource, slug='marc', ext='.xml')
+
+    def requires(self):
+        return {'marc': SaltedFileSource(slug='marc', ext='.xml'),}
 
     def run(self):
         as_xml = objectify.parse(self.requires().get('marc').output().path)
@@ -222,12 +210,9 @@ class ukgov(Task):
     output = TargetOutput(file_pattern=pattern, ext='.csv',
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
-    if DEV_MODE:
-        def requires(self):
-            return {'ukgov': SaltedFileSource(slug='ukgov', ext='.json'),}
-    else:
-        requires = Requires()
-        ukgov = Requirement(SaltedFileSource, slug='ukgov', ext='.json')
+
+    def requires(self):
+        return {'ukgov': SaltedFileSource(slug='ukgov', ext='.json'),}
 
     def run(self):
         as_json = json.load(self.requires().get('ukgov').output().open())
@@ -247,12 +232,9 @@ class cldr(Task):
     output = TargetOutput(file_pattern=pattern, ext='.csv',
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
-    if DEV_MODE:
-        def requires(self):
-            return {'cldr': SaltedFileSource(slug='cldr', ext='.json'),}
-    else:
-        requires = Requires()
-        cldr = Requirement(SaltedFileSource, slug='cldr', ext='.json')
+
+    def requires(self):
+        return {'cldr': SaltedFileSource(slug='cldr', ext='.json'),}
 
     def run(self):
         as_json = json.load(self.requires().get('cldr').output().open())
@@ -291,20 +273,18 @@ class MergeTabular(Task):
     output = TargetOutput(file_pattern=pattern, ext='.csv',
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
-    if DEV_MODE:
-        def requires(self):
-            return {'UNCodes': UNCodes(),
-                    'iso4217': iso4217(),
-                    'marc': marc(),
-                    'ukgov': ukgov(),
-                    'cldr': cldr(),
-                    'geonames': SaltedFileSource(slug='geonames', ext='.txt'),
-                    'usa-census': SaltedFileSource(slug='usa-census', ext='.txt'),
-                    'exio-wiod-eora': SaltedFileSource(slug='exio-wiod-eora', ext='.tsv'),
-                    'fao': SaltedSTSSource(slug='fao'),
-                    'fifa-ioc': SaltedSTSSource(slug='fifa-ioc')}
-    else:
-        requires = Requires()
+
+    def requires(self):
+        return {'UNCodes': UNCodes(),
+                'iso4217': iso4217(),
+                'marc': marc(),
+                'ukgov': ukgov(),
+                'cldr': cldr(),
+                'geonames': SaltedFileSource(slug='geonames', ext='.txt'),
+                'usa-census': SaltedFileSource(slug='usa-census', ext='.txt'),
+                'exio-wiod-eora': SaltedFileSource(slug='exio-wiod-eora', ext='.tsv'),
+                'fao': SaltedSTSSource(slug='fao'),
+                'fifa-ioc': SaltedSTSSource(slug='fifa-ioc')}
 
     def run(self):
         # load pre-cleaned datasets (e.g., sources with their own named tasks)
