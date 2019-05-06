@@ -24,8 +24,10 @@ import pandas as pd
 from pset_utils.hash.hash_str import bytes_pls
 from pset_utils.luigi.task import TargetOutput
 
-USE_SHELVE = os.environ.get('USE_SHELVE')
-DEV_MODE = os.environ.get('DEV_MODE')
+#USE_SHELVE = os.environ.get('USE_SHELVE')
+#DEV_MODE = os.environ.get('DEV_MODE')
+USE_SHELVE = False
+DEV_MODE = False
 
 REMOTE_FILE_SOURCES = {
     'unterm': 'https://protocol.un.org/dgacm/pls/site.nsf/files/Country%20Names%20UNTERM2/$FILE/UNTERM%20EFSRCA.xlsx',
@@ -49,6 +51,73 @@ SIMPLE_TABLE_SCRAPE_SOURCES = {
     'fao': 'http://www.fao.org/countryprofiles/iso3list/en/',
     'fifa-ioc': 'https://simple.wikipedia.org/wiki/Comparison_of_IOC,_FIFA,_and_ISO_3166_country_codes',
 }
+SOURCES = [
+    {
+        'name': 'unterm',
+        'title': 'United Nations Protocol and Liason Service',
+        'path': 'https://protocol.un.org/dgacm/pls/site.nsf/files/Country%20Names%20UNTERM2/$FILE/UNTERM%20EFSRCA.xlsx',
+    },
+    {
+        'name': 'iso4217',
+        'title': 'Swiss Association for Standardization',
+        'path': 'https://www.currency-iso.org/dam/downloads/lists/list_one.xml',
+    },
+    {
+        'name': 'marc',
+        'title': 'USA Library of Congress',
+        'path': 'http://www.loc.gov/standards/codelists/countries.xml',
+    },
+    {
+        'name': 'cldr',
+        'title': 'Unicode Common Locale Data Repository',
+        'path': 'https://raw.githubusercontent.com/unicode-cldr/cldr-localenames-full/master/main/en/territories.json',
+    },
+    {
+        'name': 'geonames',
+        'title': 'GeoNames',
+        'path': 'http://download.geonames.org/export/dump/countryInfo.txt',
+    },
+    {
+        'name': 'usa-census',
+        'title': 'USA Census Bureau',
+        'path': 'https://www.census.gov/foreign-trade/schedules/c/country2.txt',
+    },
+    {
+        'name': 'exio-wiod-eora',
+        'title': 'Secondary source providing EXIOBASE, WIOD, Eora, and other country codes',
+        'path': 'https://raw.githubusercontent.com/konstantinstadler/country_converter/master/country_converter/country_data.tsv',
+    },
+    {
+        'name': 'ukgov',
+        'title': 'Government of the United Kingdom',
+        'path': 'https://country.register.gov.uk/records.json'
+    },
+    {
+        'name': 'Edgar',
+        'title': 'USA Security and Exchange Commission',
+        'path': 'https://www.sec.gov/edgar/searchedgar/edgarstatecodes.htm',
+    },
+    {
+        'name': 'M49',
+        'title': 'United Nations Statistics Division',
+        'path': 'https://unstats.un.org/unsd/methodology/m49/overview/',
+    },
+    {
+        'name': 'itu-glad',
+        'title': 'International Telecommunications Union',
+        'path': 'https://www.itu.int/gladapp/GeographicalArea/List',
+    },
+    {
+        'name': 'fao',
+        'title': 'Food and Agriculture Organization',
+        'path': 'http://www.fao.org/countryprofiles/iso3list/en/',
+    },
+    {
+        'name': 'fifa-ioc',
+        'title': 'Wikipedia (FIFA and IOC)',
+        'path': 'https://simple.wikipedia.org/wiki/Comparison_of_IOC,_FIFA,_and_ISO_3166_country_codes',
+    },
+]
 
 
 class Salt:
@@ -100,7 +169,7 @@ def clean(word):
 
 class FileSource(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/'
+    DATA_ROOT = 'data/sources/'
 
     slug = Parameter()
     ext = Parameter()
@@ -126,7 +195,7 @@ class FileSource(Task):
 
 class SaltedFileSource(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/'
+    DATA_ROOT = 'data/sources/'
 
     slug = Parameter()
     ext = Parameter()
@@ -148,7 +217,7 @@ class SaltedFileSource(Task):
 
 class EdgarSource(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/'
+    DATA_ROOT = 'data/sources/'
     slug = Parameter(default='Edgar')
     ext = Parameter(default='.csv')
 
@@ -193,7 +262,7 @@ class EdgarSource(Task):
 
 class SaltedEdgarSource(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/'
+    DATA_ROOT = 'data/sources/'
 
     slug = Parameter(default='Edgar')
     ext = Parameter(default='.csv')
@@ -214,7 +283,7 @@ class SaltedEdgarSource(Task):
 
 class M49Source(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/'
+    DATA_ROOT = 'data/sources/'
     slug = Parameter(default='M49')
     ext = Parameter(default='.csv')
 
@@ -227,6 +296,7 @@ class M49Source(Task):
         url = CUSTOM_SCRAPE_SOURCES.get(self.slug)
 
         if USE_SHELVE:
+            luigi_logger.debug('USING SHELVE')
             try:
                 shelf = shelve.open('tmpdb')
                 content = shelf['M49']
@@ -258,6 +328,7 @@ class M49Source(Task):
             return df[0]
 
         if USE_SHELVE:
+            luigi_logger.debug('USING SHELVE')
             try:
                 shelf = shelve.open('tmpdb')
                 frames_tuples = shelf['m49-frames_tuples']
@@ -302,7 +373,7 @@ class M49Source(Task):
 
 class SaltedM49Source(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/'
+    DATA_ROOT = 'data/sources/'
 
     slug = Parameter(default='M49')
     ext = Parameter(default='.csv')
@@ -323,7 +394,7 @@ class SaltedM49Source(Task):
 
 class SimpleTableScrapeSource(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/'
+    DATA_ROOT = 'data/sources/'
     slug = Parameter()
     ext = Parameter(default='.csv')
 
@@ -335,6 +406,7 @@ class SimpleTableScrapeSource(Task):
     def run(self):
         url = SIMPLE_TABLE_SCRAPE_SOURCES.get(self.slug)
         if USE_SHELVE:
+            luigi_logger.debug('USING SHELVE')
             try:
                 shelf = shelve.open('tmpdb')
                 content = shelf[self.slug]
@@ -353,7 +425,7 @@ class SimpleTableScrapeSource(Task):
 
 class SaltedSTSSource(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/'
+    DATA_ROOT = 'data/sources/'
 
     slug = Parameter()
     ext = Parameter(default='.csv')

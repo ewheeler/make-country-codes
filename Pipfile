@@ -17,6 +17,7 @@ lxml = "*"
 html5lib = "*"
 bs4 = "*"
 xlrd = "*"
+datapackage = "*"
 
 [requires]
 python_version = "3.7"

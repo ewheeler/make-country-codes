@@ -12,12 +12,16 @@ from luigi.task import logger as luigi_logger
 import pandas as pd
 import lxml
 from lxml import objectify
+from fuzzywuzzy import fuzz
+from datapackage import Package
 
 from pset_utils.luigi.task import TargetOutput
 
 from .data import SaltedFileSource
 from .data import SaltedSTSSource
 from .data import SaltedM49Source
+from .data import SaltedEdgarSource
+from .data import SOURCES
 from .data import DEV_MODE
 
 
@@ -45,7 +49,7 @@ def convert_numeric_code(x):
 
 class UNCodes(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/'
+    DATA_ROOT = 'data/sources/'
 
     pattern = '{task.__class__.__name__}'
     output = TargetOutput(file_pattern=pattern, ext='.csv',
@@ -100,7 +104,7 @@ class UNCodes(Task):
 
 class iso4217(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/'
+    DATA_ROOT = 'data/sources/'
 
     pattern = '{task.__class__.__name__}'
     output = TargetOutput(file_pattern=pattern, ext='.csv',
@@ -119,6 +123,7 @@ class iso4217(Task):
         # some country names to fix
         currency_country_name_map = {
             "CABO VERDE": "CAPE VERDE",
+            "CONGO (THE)": "CONGO",
             "CONGO (THE DEMOCRATIC REPUBLIC OF THE)": "DEMOCRATIC REPUBLIC OF THE CONGO",
             "HEARD ISLAND AND McDONALD ISLANDS": "HEARD ISLAND AND MCDONALD ISLANDS",
             "HONG KONG": 'CHINA, HONG KONG SPECIAL ADMINISTRATIVE REGION',
@@ -137,6 +142,7 @@ class iso4217(Task):
         }
 
         as_lists = []
+        seen = []
         for iso_currency_table in as_xml.iter():
             if isinstance(iso_currency_table, objectify.ObjectifiedElement):
                 # get strings rather than an ObjectifiedElements
@@ -144,12 +150,17 @@ class iso4217(Task):
                 currency = [c.text for c in iso_currency_table.getchildren()]
                 if currency:
                     if currency[0]:
-                        if currency[0] in skip or currency[0].startswith('ZZ'):
+                        if currency[0] in skip or currency[0].startswith('ZZ') or currency[0].startswith('INTERNATIONAL'):
                             continue
                         if currency[0] in currency_country_name_map:
                             # correct the few names that do not match M49 names
                             currency[0] = currency_country_name_map.get(currency[0])
-                        as_lists.append(currency)
+                        if currency[0] not in seen:
+                            # source includes additional, commonly used or
+                            # accepted currencies from other states.
+                            # we keep only the first/most official currency
+                            seen.append(currency[0])
+                            as_lists.append(currency)
 
         columns = ['Country Name (iso4217)', 'Currency Name (iso4217)',\
                    'Currency Code Alpha (iso4217)', 'Currency Code Numeric (iso4217)',\
@@ -162,7 +173,7 @@ class iso4217(Task):
 
 class marc(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/'
+    DATA_ROOT = 'data/sources/'
 
     pattern = '{task.__class__.__name__}'
     output = TargetOutput(file_pattern=pattern, ext='.csv',
@@ -204,7 +215,7 @@ class marc(Task):
 
 class ukgov(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/'
+    DATA_ROOT = 'data/sources/'
 
     pattern = '{task.__class__.__name__}'
     output = TargetOutput(file_pattern=pattern, ext='.csv',
@@ -226,7 +237,7 @@ class ukgov(Task):
 
 class cldr(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/'
+    DATA_ROOT = 'data/sources/'
 
     pattern = '{task.__class__.__name__}'
     output = TargetOutput(file_pattern=pattern, ext='.csv',
@@ -265,11 +276,11 @@ class cldr(Task):
             df.to_csv(f, index=False, float_format='%.0f')
 
 
-class MergeTabular(Task):
+class CountryCodes(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/'
+    DATA_ROOT = 'data/package/data/'
 
-    pattern = '{task.__class__.__name__}'
+    pattern = 'country-codes'
     output = TargetOutput(file_pattern=pattern, ext='.csv',
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
@@ -280,11 +291,13 @@ class MergeTabular(Task):
                 'marc': marc(),
                 'ukgov': ukgov(),
                 'cldr': cldr(),
+                'edgar': SaltedEdgarSource(),
                 'geonames': SaltedFileSource(slug='geonames', ext='.txt'),
                 'usa-census': SaltedFileSource(slug='usa-census', ext='.txt'),
                 'exio-wiod-eora': SaltedFileSource(slug='exio-wiod-eora', ext='.tsv'),
                 'fao': SaltedSTSSource(slug='fao'),
-                'fifa-ioc': SaltedSTSSource(slug='fifa-ioc')}
+                'fifa-ioc': SaltedSTSSource(slug='fifa-ioc'),
+                'itu-glad': SaltedSTSSource(slug='itu-glad')}
 
     def run(self):
         # load pre-cleaned datasets (e.g., sources with their own named tasks)
@@ -300,6 +313,9 @@ class MergeTabular(Task):
                             keep_default_na=False, na_values=['_'])
         cldr = pd.read_csv(self.requires().get('cldr').output().path,
                            keep_default_na=False, na_values=['_'])
+        edgar = pd.read_csv(self.requires().get('edgar').output().path,
+                           keep_default_na=False, na_values=['_'])
+        edgar.columns = ['Edgar Code (edgar)', 'Country Name (edgar)']
 
         # load and clean tabular sources
         geonames = pd.read_csv(self.requires().get('geonames').output().path,
@@ -307,6 +323,7 @@ class MergeTabular(Task):
                                converters={'ISO-Numeric': convert_numeric_code_with_pad},
                                header=50, sep='\t')
         geonames = geonames.astype(dtype={'ISO-Numeric': 'object'})
+        geonames = geonames.rename(lambda x: x.replace('#', ''), axis=1)
         geonames = geonames.add_suffix(' (geonames)')
 
         # TODO this source has some errors...
@@ -315,6 +332,7 @@ class MergeTabular(Task):
                                 converters={' ISO Code': lambda x: x.replace(' ', '')},
                                 header=3, skiprows=[4, 246, 247, 248, 249],
                                 sep='|')
+        usacensus = usacensus.rename(lambda x: x.strip(), axis=1)
         usacensus = usacensus.add_suffix(' (usa-census)')
 
         exio = pd.read_csv(self.requires().get('exio-wiod-eora').output().path,
@@ -338,6 +356,10 @@ class MergeTabular(Task):
         fifa.drop('Flag', inplace=True, axis=1)
         fifa = fifa.add_suffix(' (fifa-ioc)')
 
+        itu = pd.read_csv(self.requires().get('itu-glad').output().path,
+                           keep_default_na=False, na_values=['_'])
+        itu = itu.add_suffix(' (itu-glad)')
+
         # join on ISO 3166 alpha 3 codes
         combined = pd.merge(UNCodes, exio, how='outer',
                             left_on='ISO-alpha3 Code (M49)',
@@ -354,21 +376,112 @@ class MergeTabular(Task):
         # join on ISO 3166 alpha 2 codes
         combined  = pd.merge(combined, geonames, how='outer',
                               left_on='ISO2 (exio-wiod-eora)',
-                              right_on='#ISO (geonames)')
+                              right_on='ISO (geonames)')
         combined = pd.merge(combined, usacensus, how='outer',
-                           left_on='#ISO (geonames)',
-                           right_on=' ISO Code (usa-census)')
+                           left_on='ISO (geonames)',
+                           right_on='ISO Code (usa-census)')
 
         combined = pd.merge(combined, ukgov, how='outer',
-                           left_on=' ISO Code (usa-census)',
+                           left_on='ISO Code (usa-census)',
                            right_on='country (ukgov)')
 
         combined = pd.merge(combined, cldr, how='outer',
-                           left_on='#ISO (geonames)',
+                           left_on='ISO (geonames)',
                            right_on='Locale Code (cldr)')
-        # TODO join on country names
-        # itu-glad
-        # marc
-        # iso4217
+
+        def match_on_names(df, name_column):
+            def correct(territory):
+                matches = []
+                for t in regex_tuples:
+                    pat = re.compile(t[1], flags=re.I)
+                    if pat.findall(territory):
+                        matches.append(t[0])
+                if any(matches):
+                    return pd.Series({'ISO3': matches[0], name_column: territory})
+                return pd.Series({'ISO3': '', name_column: territory})
+            return pd.merge(df, df.get(name_column).apply(correct))
+
+        # exio-wiod-eora source includes handy regexes for matching country names
+        regex_tuples = combined[['ISO3 (exio-wiod-eora)',
+                                 'regex (exio-wiod-eora)']].dropna().apply(tuple, axis=1).to_list()
+
+        marc = match_on_names(marc, 'Country Name (marc)')
+        iso4217 = match_on_names(iso4217, 'Country Name (iso4217)')
+        edgar = match_on_names(edgar, 'Country Name (edgar)')
+        # TODO errors when matching, so leaving out for now
+        itu = match_on_names(itu, 'Designation (itu-glad)')
+
+        matched = pd.merge(iso4217, marc, how='outer',
+                           left_on='ISO3',
+                           right_on='ISO3')
+        matched = pd.merge(matched, edgar, how='outer',
+                           left_on='ISO3',
+                           right_on='ISO3')
+        combined = pd.merge(combined, matched, how='outer',
+                            left_on='ISO3 (exio-wiod-eora)',
+                            right_on='ISO3')
+        combined.drop('ISO3', inplace=True, axis=1)
+
         with self.output().open('w') as f:
             combined.to_csv(f, index=False, float_format='%.0f')
+
+class Datapackage(Task):
+    __version__ = '0.1'
+    DATA_ROOT = 'data/package/'
+
+    pattern = 'datapackage'
+    output = TargetOutput(file_pattern=pattern, ext='.json',
+                          base_dir=DATA_ROOT,
+                          target_class=LocalTarget)
+
+    def requires(self):
+        return {'country-codes': CountryCodes()}
+
+    def run(self):
+        package = Package()
+        metadata = {"name": "country-codes",
+                    "title": "Comprehensive country codes: ISO 3166, ITU, ISO 4217 currency codes and many more",
+                    "licenses": [{"name": "ODC-PDDL-1.0",
+                                  "path": "http://opendatacommons.org/licenses/pddl/",
+                                  "title": "Open Data Commons Public Domain Dedication and License v1.0"}],
+                    "repository": {
+                        "type": "git",
+                        "url": "https://github.com/datasets/country-codes"},
+                    "contributors": [
+                        {
+                        "title": "Evan Wheeler",
+                        "path": "https://github.com/datasets/country-codes",
+                        "role": "maintainer"
+                        }
+                    ],
+                    "related": [
+                        {
+                        "title": "Country list",
+                        "path": "/core/country-list",
+                        "publisher": "core",
+                        "formats": ["CSV", "JSON"]
+                        },
+                        {
+                        "title": "Language codes",
+                        "path": "/core/language-codes",
+                        "publisher": "core",
+                        "formats": ["CSV", "JSON"]
+                        },
+                        {
+                        "title": "Airport codes",
+                        "path": "/core/airport-codes",
+                        "publisher": "core",
+                        "formats": ["CSV", "JSON"]
+                        },
+                        {
+                        "title": "Continent codes",
+                        "path": "/core/continent-codes",
+                        "publisher": "core",
+                        "formats": ["CSV", "JSON"]
+                        }
+                    ]
+                   }
+        metadata.update(package.infer(self.requires().get('country-codes').output().path))
+        metadata.update({'sources': SOURCES})
+        with self.output().open('w') as f:
+            json.dump(metadata, f)
