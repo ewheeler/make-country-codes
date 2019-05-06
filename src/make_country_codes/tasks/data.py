@@ -1,12 +1,8 @@
 import shelve
-import sys
 import os
 import csv
 import urllib
 import hashlib
-import itertools
-from operator import methodcaller
-from functools import update_wrapper
 from functools import reduce
 
 from luigi import format
@@ -277,7 +273,6 @@ class SaltedEdgarSource(Task):
                           target_class=LocalTarget)
 
     def run(self):
-        salt = get_salt_for_task(self.requires())
         self.requires().get('source').output().copy(self.output().path)
 
 
@@ -345,11 +340,11 @@ class M49Source(Task):
 
         # values in these columns are the same in any language
         # (excluding `M49 Code` bc we need it to merge dataframes)
-        non_local = ['Global Code', 'Region Code', 'Sub-region Code',\
-                     'Intermediate Region Code',\
-                     'ISO-alpha3 Code', 'Least Developed Countries (LDC)',\
-                     'Land Locked Developing Countries (LLDC)',\
-                     'Small Island Developing States (SIDS)',\
+        non_local = ['Global Code', 'Region Code', 'Sub-region Code',
+                     'Intermediate Region Code',
+                     'ISO-alpha3 Code', 'Least Developed Countries (LDC)',
+                     'Land Locked Developing Countries (LLDC)',
+                     'Small Island Developing States (SIDS)',
                      'Developed / Developing Countries']
 
         # remove repeated, non-localized columns
@@ -363,8 +358,8 @@ class M49Source(Task):
         # - add language suffixes to column names
         merged = reduce(lambda left, right:
                         (right[0], pd.merge(left[1], right[1],
-                                           on='M49 Code',
-                                           suffixes=('_' + left[0], '_' + right[0]))),
+                                            on='M49 Code',
+                                            suffixes=('_' + left[0], '_' + right[0]))),
                         frames_tuples)
 
         with self.output().open('w') as f:
@@ -388,7 +383,6 @@ class SaltedM49Source(Task):
                           target_class=LocalTarget)
 
     def run(self):
-        salt = get_salt_for_task(self.requires())
         self.requires().get('source').output().copy(self.output().path)
 
 

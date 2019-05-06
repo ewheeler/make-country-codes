@@ -1,8 +1,5 @@
 import re
 import json
-from functools import reduce
-from collections import namedtuple
-from operator import attrgetter
 from itertools import filterfalse
 
 from luigi import Task
@@ -10,9 +7,7 @@ from luigi import LocalTarget
 from luigi.task import logger as luigi_logger
 
 import pandas as pd
-import lxml
 from lxml import objectify
-from fuzzywuzzy import fuzz
 from datapackage import Package
 
 from pset_utils.luigi.task import TargetOutput
@@ -314,7 +309,7 @@ class CountryCodes(Task):
         cldr = pd.read_csv(self.requires().get('cldr').output().path,
                            keep_default_na=False, na_values=['_'])
         edgar = pd.read_csv(self.requires().get('edgar').output().path,
-                           keep_default_na=False, na_values=['_'])
+                            keep_default_na=False, na_values=['_'])
         edgar.columns = ['Edgar Code (edgar)', 'Country Name (edgar)']
 
         # load and clean tabular sources
