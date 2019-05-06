@@ -31,4 +31,4 @@ jobs:
     - stage: answers
       script:
       - python3 -m make_country_codes
-
+      - datapackage validate data/package/datapackage.json
