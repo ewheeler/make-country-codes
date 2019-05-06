@@ -21,8 +21,6 @@ from ..utils import clean
 from ..utils import sha256sum
 from ..utils import TargetOutput
 
-#USE_SHELVE = os.environ.get('USE_SHELVE')
-#DEV_MODE = os.environ.get('DEV_MODE')
 USE_SHELVE = False
 DEV_MODE = False
 
@@ -121,7 +119,7 @@ SOURCES = [
 
 class FileSource(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/sources/'
+    DATA_ROOT = 'build/'
 
     slug = Parameter()
     ext = Parameter()
@@ -147,7 +145,7 @@ class FileSource(Task):
 
 class SaltedFileSource(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/sources/'
+    DATA_ROOT = 'build/'
 
     slug = Parameter()
     ext = Parameter()
@@ -168,7 +166,7 @@ class SaltedFileSource(Task):
 
 class EdgarSource(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/sources/'
+    DATA_ROOT = 'build/'
     slug = Parameter(default='Edgar')
     ext = Parameter(default='.csv')
 
@@ -213,7 +211,7 @@ class EdgarSource(Task):
 
 class SaltedEdgarSource(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/sources/'
+    DATA_ROOT = 'build/'
 
     slug = Parameter(default='Edgar')
     ext = Parameter(default='.csv')
@@ -233,7 +231,7 @@ class SaltedEdgarSource(Task):
 
 class M49Source(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/sources/'
+    DATA_ROOT = 'build/'
     slug = Parameter(default='M49')
     ext = Parameter(default='.csv')
 
@@ -323,7 +321,7 @@ class M49Source(Task):
 
 class SaltedM49Source(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/sources/'
+    DATA_ROOT = 'build/'
 
     slug = Parameter(default='M49')
     ext = Parameter(default='.csv')
@@ -343,7 +341,7 @@ class SaltedM49Source(Task):
 
 class SimpleTableScrapeSource(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/sources/'
+    DATA_ROOT = 'build/'
     slug = Parameter()
     ext = Parameter(default='.csv')
 
@@ -374,7 +372,7 @@ class SimpleTableScrapeSource(Task):
 
 class SaltedSTSSource(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'data/sources/'
+    DATA_ROOT = 'build/'
 
     slug = Parameter()
     ext = Parameter(default='.csv')
