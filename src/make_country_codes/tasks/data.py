@@ -33,7 +33,6 @@ REMOTE_FILE_SOURCES = {
     'marc': 'http://www.loc.gov/standards/codelists/countries.xml',
     'cldr': 'https://raw.githubusercontent.com/unicode-cldr/cldr-localenames-full/master/main/en/territories.json',
     'geonames': 'http://download.geonames.org/export/dump/countryInfo.txt',
-    'itu-t-e164': 'https://raw.githubusercontent.com/googlei18n/libphonenumber/master/resources/PhoneNumberMetadata.xml',
     'usa-census': 'https://www.census.gov/foreign-trade/schedules/c/country2.txt',
     'exio-wiod-eora': 'https://raw.githubusercontent.com/konstantinstadler/country_converter/master/country_converter/country_data.tsv',
     'ukgov': 'https://country.register.gov.uk/records.json'
