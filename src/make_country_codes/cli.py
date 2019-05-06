@@ -18,7 +18,7 @@ import argparse
 
 from luigi import build
 
-from .tasks.assemble import MergeTabular
+from .tasks.assemble import Datapackage
 
 parser = argparse.ArgumentParser(description='Command description.')
 parser.add_argument('names', metavar='NAME', nargs=argparse.ZERO_OR_MORE,
@@ -29,5 +29,5 @@ def main(args=None):
     args = parser.parse_args(args=args)
     print(args.names)
     build([
-        MergeTabular(),
+        Datapackage(),
     ], local_scheduler=True)
