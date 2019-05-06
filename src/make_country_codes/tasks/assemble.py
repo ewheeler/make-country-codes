@@ -402,7 +402,7 @@ class CountryCodes(Task):
 
 class Datapackage(Task):
     __version__ = '0.1'
-    DATA_ROOT = 'build'
+    DATA_ROOT = 'build/'
 
     pattern = 'datapackage'
     output = TargetOutput(file_pattern=pattern, ext='.json',
