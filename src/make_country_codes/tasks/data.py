@@ -20,6 +20,8 @@ from ..utils import bytes_pls
 from ..utils import clean
 from ..utils import sha256sum
 from ..utils import TargetOutput
+from ..junk import Requires
+from ..junk import Requirement
 
 #USE_SHELVE = os.environ.get('USE_SHELVE')
 #DEV_MODE = os.environ.get('DEV_MODE')
@@ -153,8 +155,12 @@ class SaltedFileSource(Task):
     ext = Parameter()
     salt = sha256sum()
 
+    """
     def requires(self):
         return {'source': FileSource(slug=self.slug, ext=self.ext)}
+    """
+    requires = Requires()
+    source = Requirement(FileSource, slug=slug, ext=ext)
 
     pattern = '{task.__class__.__name__}-{task.slug}-{task.salt}{task.ext}'
     output = TargetOutput(file_pattern=pattern, ext='',
@@ -219,8 +225,12 @@ class SaltedEdgarSource(Task):
     ext = Parameter(default='.csv')
     salt = sha256sum()
 
+    """
     def requires(self):
         return {'source': EdgarSource(slug=self.slug, ext=self.ext)}
+    """
+    requires = Requires()
+    source = Requirement(EdgarSource, slug='Edgar', ext='.csv')
 
     pattern = '{task.__class__.__name__}-{task.slug}-{task.salt}{task.ext}'
     output = TargetOutput(file_pattern=pattern, ext='',
@@ -329,8 +339,12 @@ class SaltedM49Source(Task):
     ext = Parameter(default='.csv')
     salt = sha256sum()
 
+    """
     def requires(self):
         return {'source': M49Source(slug=self.slug, ext=self.ext)}
+    """
+    requires = Requires()
+    source = Requirement(M49Source, slug='M49', ext='.csv')
 
     pattern = '{task.__class__.__name__}-{task.slug}-{task.salt}{task.ext}'
     output = TargetOutput(file_pattern=pattern, ext='',
@@ -380,8 +394,12 @@ class SaltedSTSSource(Task):
     ext = Parameter(default='.csv')
     salt = sha256sum()
 
+    """
     def requires(self):
         return {'source': SimpleTableScrapeSource(slug=self.slug, ext=self.ext)}
+    """
+    requires = Requires()
+    source = Requirement(SimpleTableScrapeSource, slug=slug, ext=ext)
 
     pattern = '{task.__class__.__name__}-{task.slug}-{task.salt}{task.ext}'
     output = TargetOutput(file_pattern=pattern, ext='',
