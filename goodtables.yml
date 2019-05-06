@@ -1,3 +1,0 @@
-files:
-  - source: data/country-codes.csv
-    schema: datapackage.json
