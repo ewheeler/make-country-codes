@@ -3,7 +3,6 @@ import json
 from itertools import filterfalse
 
 from luigi import Task
-from luigi import LocalTarget
 from luigi.task import logger as luigi_logger
 
 import pandas as pd
@@ -11,6 +10,7 @@ from lxml import objectify
 from datapackage import Package
 
 from ..utils import TargetOutput
+from ..utils import SuffixPreservingLocalTarget as LocalTarget
 from ..utils import convert_numeric_code_with_pad
 from ..utils import convert_numeric_code
 
@@ -201,7 +201,8 @@ class ukgov(Task):
         return {'ukgov': SaltedFileSource(slug='ukgov', ext='.json'),}
 
     def run(self):
-        as_json = json.load(self.requires().get('ukgov').output().open())
+        source = self.requires().get('ukgov').output()
+        as_json = json.load(open(source.path, 'r'))
         as_list_of_dicts  = {k: v['item'][0] for k,v in as_json.items()}.values()
         df = pd.DataFrame(as_list_of_dicts)
         df = df.add_suffix(' (ukgov)')
@@ -223,7 +224,8 @@ class cldr(Task):
         return {'cldr': SaltedFileSource(slug='cldr', ext='.json'),}
 
     def run(self):
-        as_json = json.load(self.requires().get('cldr').output().open())
+        source = self.requires().get('cldr').output()
+        as_json = json.load(open(source.path, 'r'))
         territories = as_json['main']['en']['localeDisplayNames']['territories']
 
         # find countries with alternate short/variant names
