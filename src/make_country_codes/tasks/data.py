@@ -5,7 +5,6 @@ import urllib
 from functools import reduce
 
 from luigi import format
-from luigi import LocalTarget
 from luigi import Parameter
 from luigi import Task
 from luigi import WrapperTask
@@ -20,6 +19,7 @@ from ..utils import bytes_pls
 from ..utils import clean
 from ..utils import sha256sum
 from ..utils import TargetOutput
+from ..utils import SuffixPreservingLocalTarget as LocalTarget
 
 USE_SHELVE = False
 DEV_MODE = False
@@ -161,7 +161,9 @@ class SaltedFileSource(Task):
                           format=format.Nop)
 
     def run(self):
-        self.requires().get('source').output().copy(self.output().path)
+        source = self.requires().get('source').output()
+        target = self.output().path
+        source.copy(target)
 
 
 class EdgarSource(Task):

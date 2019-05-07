@@ -1,7 +1,13 @@
+import os
+import random
 import hashlib
 from functools import reduce
+from contextlib import contextmanager
 
 from luigi import LocalTarget
+from luigi.local_target import atomic_file
+from luigi.task import logger as luigi_logger
+from salted.salted_demo import get_salted_version
 
 replacements = (u'\xa0', u''), (u'\n', u''), (u'\r', u'')
 
@@ -81,7 +87,8 @@ def get_salt_for_source(task):
     checksum = hashlib.sha256()
     # TODO read and hash in chunks
 
-    with task.get('source').output().open('r') as f:
+    source = task.get('source').output()
+    with open(source.path, 'rb') as f:
         checksum.update(bytes_pls(f.read()))
     return checksum.hexdigest()[:6]
 
@@ -103,3 +110,45 @@ class TargetOutput:
     def __call__(self, task):
         target_path = self.base_dir + self.file_pattern.format(task=task) + self.ext
         return self.target_class(target_path, **self.target_kwargs)
+
+
+def salted_SPLT(task, file_pattern, format=None, **kwargs):
+    """A local target with a file path formed with a 'salt' kwarg
+
+    :rtype: SuffixPreservingLocalTarget
+    """
+    return SuffixPreservingLocalTarget(file_pattern.format(
+        salt=get_salted_version(task)[:6], self=task, **kwargs
+    ), format=format)
+
+
+class suffix_preserving_atomic_file(atomic_file):
+    def generate_tmp_path(self, path):
+        root, ext = os.path.splitext(path)
+        rand = random.randrange(0, 1e10)
+        return  f'{path}-luigi-tmp-{rand}{ext}'
+
+
+class BaseAtomicProviderLocalTarget(LocalTarget):
+    # Allow some composability of atomic handling
+    atomic_provider = atomic_file
+
+    def open(self, mode='r'):
+        # leverage super() as well as modifying any code in LocalTarget
+        # to use self.atomic_provider rather than atomic_file
+        rwmode = mode.replace('b', '').replace('t', '')
+        if rwmode == 'w':
+            self.makedirs()
+            return self.format.pipe_writer(self.atomic_provider(self.path))
+        super(LocalTarget, self).open(mode=mode)
+
+    @contextmanager
+    def temporary_path(self):
+        # NB: unclear why LocalTarget doesn't use atomic_file in its implementation
+        self.makedirs()
+        with self.atomic_provider(self.path) as af:
+            yield af.tmp_path
+
+
+class SuffixPreservingLocalTarget(BaseAtomicProviderLocalTarget):
+    atomic_provider = suffix_preserving_atomic_file
