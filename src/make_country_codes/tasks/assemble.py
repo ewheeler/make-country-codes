@@ -180,7 +180,7 @@ class marc(Task):
                             # discard extra obsolete code
                             stuff.pop()
                     as_lists.append(stuff)
-        columns = ['Country Name (marc)', 'Marc Code (marc)',\
+        columns = ['Country Name (marc)', 'Marc Code (marc)',
                    'Continent (marc)']
         df = pd.DataFrame(data=as_lists, columns=columns)
 
