@@ -130,6 +130,7 @@ class Requires:
         return {key : getattr(task, key) for key in dir(task.__class__)
                 if isinstance(getattr(task.__class__, key), Requirement)}
 
+
 class Requirement:
     def __init__(self, task_class, **params):
         self.task_class = task_class

@@ -20,8 +20,8 @@ from ..utils import bytes_pls
 from ..utils import clean
 from ..utils import sha256sum
 from ..utils import TargetOutput
-from ..junk import Requires
-from ..junk import Requirement
+from ..utils import Requires
+from ..utils import Requirement
 
 #USE_SHELVE = os.environ.get('USE_SHELVE')
 #DEV_MODE = os.environ.get('DEV_MODE')

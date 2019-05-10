@@ -13,8 +13,8 @@ from datapackage import Package
 from ..utils import TargetOutput
 from ..utils import convert_numeric_code_with_pad
 from ..utils import convert_numeric_code
-from ..junk import Requires
-from ..junk import Requirement
+from ..utils import Requires
+from ..utils import Requirement
 
 from .data import SaltedFileSource
 from .data import SaltedSTSSource
