@@ -33,14 +33,9 @@ class UNCodes(Task):
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
-    """
-    def requires(self):
-        return {'unterm': SaltedFileSource('unterm', '.xlsx'),
-                'M49': SaltedM49Source('M49')}
-    """
     requires = Requires()
     unterm = Requirement(SaltedFileSource, slug='unterm', ext='.xlsx')
-    m49 = Requirement(SaltedM49Source, slug='M49')
+    m49 = Requirement(SaltedM49Source, slug='M49', ext='.csv')
 
     def run(self):
         # Namibia's 2 letter codes are often `NA`, so setting
@@ -93,10 +88,6 @@ class iso4217(Task):
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
-    """
-    def requires(self):
-        return {'iso4217': SaltedFileSource(slug='iso4217', ext='.xml'),}
-    """
     requires = Requires()
     iso4217 = Requirement(SaltedFileSource, slug='iso4217', ext='.xml')
 
@@ -166,10 +157,6 @@ class marc(Task):
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
-    """
-    def requires(self):
-        return {'marc': SaltedFileSource(slug='marc', ext='.xml'),}
-    """
     requires = Requires()
     marc = Requirement(SaltedFileSource, slug='marc', ext='.xml')
 
@@ -212,10 +199,6 @@ class ukgov(Task):
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
-    """
-    def requires(self):
-        return {'ukgov': SaltedFileSource(slug='ukgov', ext='.json'),}
-    """
     requires = Requires()
     ukgov = Requirement(SaltedFileSource, slug='ukgov', ext='.json')
 
@@ -238,10 +221,6 @@ class cldr(Task):
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
-    """
-    def requires(self):
-        return {'cldr': SaltedFileSource(slug='cldr', ext='.json'),}
-    """
     requires = Requires()
     cldr = Requirement(SaltedFileSource, slug='cldr', ext='.json')
 
@@ -283,21 +262,6 @@ class CountryCodes(Task):
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
-    """
-    def requires(self):
-        return {'UNCodes': UNCodes(),
-                'iso4217': iso4217(),
-                'marc': marc(),
-                'ukgov': ukgov(),
-                'cldr': cldr(),
-                'edgar': SaltedEdgarSource(),
-                'geonames': SaltedFileSource(slug='geonames', ext='.txt'),
-                'usa-census': SaltedFileSource(slug='usa-census', ext='.txt'),
-                'exio-wiod-eora': SaltedFileSource(slug='exio-wiod-eora', ext='.tsv'),
-                'fao': SaltedSTSSource(slug='fao'),
-                'fifa-ioc': SaltedSTSSource(slug='fifa-ioc'),
-                'itu-glad': SaltedSTSSource(slug='itu-glad')}
-    """
     requires = Requires()
     src_UNCodes = Requirement(UNCodes)
     src_iso4217 = Requirement(iso4217)
@@ -449,10 +413,6 @@ class Datapackage(Task):
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
-    """
-    def requires(self):
-        return {'country-codes': CountryCodes()}
-    """
     requires = Requires()
     source = Requirement(CountryCodes)
 

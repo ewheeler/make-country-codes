@@ -32,6 +32,5 @@ def main(args=None):
     print(args.names)
     build([
         #SaltedSources(),
-        #Datapackage(),
-        CountryCodes(),
+        Datapackage(),
     ], local_scheduler=True)
