@@ -136,7 +136,6 @@ class FileSource(Task):
 
     def run(self):
         url = REMOTE_FILE_SOURCES.get(self.slug)
-        luigi_logger.debug(url)
 
         with requests.get(url, stream=True) as r:
             r.raise_for_status()

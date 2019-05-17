@@ -40,7 +40,7 @@ class UNCodes(Task):
     def run(self):
         # Namibia's 2 letter codes are often `NA`, so setting
         # `keep_default_na=False` and clearing `na_values` is essential!
-        m49 = pd.read_csv(self.requires().get('M49').output().path,
+        m49 = pd.read_csv(self.requires().get('m49').output().path,
                           keep_default_na=False, na_values=['_'],
                           converters={'Country or Area_en':
                                       lambda x: x.replace("Côte d’Ivoire", "Côte d'Ivoire"),
@@ -272,9 +272,9 @@ class CountryCodes(Task):
     src_geonames = Requirement(SaltedFileSource, slug='geonames', ext='.txt')
     src_usacensus = Requirement(SaltedFileSource, slug='usa-census', ext='.txt')
     src_exio = Requirement(SaltedFileSource, slug='exio-wiod-eora', ext='.tsv')
-    src_fao = Requirement(SaltedSTSSource, slug='fao')
-    src_fifa = Requirement(SaltedSTSSource, slug='fifa-ioc')
-    src_itu = Requirement(SaltedSTSSource, slug='itu-glad')
+    src_fao = Requirement(SaltedSTSSource, slug='fao', ext='.csv')
+    src_fifa = Requirement(SaltedSTSSource, slug='fifa-ioc', ext='.csv')
+    src_itu = Requirement(SaltedSTSSource, slug='itu-glad', ext='.csv')
 
 
     def run(self):

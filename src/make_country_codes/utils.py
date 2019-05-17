@@ -2,6 +2,7 @@ import hashlib
 from functools import reduce
 
 from luigi import LocalTarget
+from luigi import Parameter
 from luigi.task import logger as luigi_logger
 
 replacements = (u'\xa0', u''), (u'\n', u''), (u'\r', u'')
@@ -140,6 +141,8 @@ class Requirement:
         if task is None:
             return self
 
-        return task.clone(
-            self.task_class,
-            **self.params)
+        if self.params:
+            for v in self.params.values():
+                if isinstance(v, Parameter):
+                    return task.clone(self.task_class, **task.to_str_params())
+        return task.clone(self.task_class, **self.params)
