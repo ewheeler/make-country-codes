@@ -5,9 +5,10 @@ from functools import reduce
 from contextlib import contextmanager
 
 from luigi import LocalTarget
+from luigi import Parameter
 from luigi.local_target import atomic_file
-from luigi.task import logger as luigi_logger
 from salted.salted_demo import get_salted_version
+from luigi.task import logger as luigi_logger
 
 replacements = (u'\xa0', u''), (u'\n', u''), (u'\r', u'')
 
@@ -152,3 +153,44 @@ class BaseAtomicProviderLocalTarget(LocalTarget):
 
 class SuffixPreservingLocalTarget(BaseAtomicProviderLocalTarget):
     atomic_provider = suffix_preserving_atomic_file
+
+
+class Requires:
+    """Composition to replace :meth:`luigi.task.Task.requires`
+    """
+
+    def __get__(self, task, cls):
+        if task is None:
+            return self
+
+        # Bind self/task in a closure
+        return lambda : self(task)
+
+    def __call__(self, task):
+        """Returns the requirements of a task
+
+        Assumes the task class has :class:`.Requirement` descriptors, which
+        can clone the appropriate dependences from the task instance.
+
+        :returns: requirements compatible with `task.requires()`
+        :rtype: dict
+        """
+
+        return {key : getattr(task, key) for key in dir(task.__class__)
+                if isinstance(getattr(task.__class__, key), Requirement)}
+
+
+class Requirement:
+    def __init__(self, task_class, **params):
+        self.task_class = task_class
+        self.params = params
+
+    def __get__(self, task, cls):
+        if task is None:
+            return self
+
+        if self.params:
+            for v in self.params.values():
+                if isinstance(v, Parameter):
+                    return task.clone(self.task_class, **task.to_str_params())
+        return task.clone(self.task_class, **self.params)

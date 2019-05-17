@@ -13,6 +13,8 @@ from ..utils import TargetOutput
 from ..utils import SuffixPreservingLocalTarget as LocalTarget
 from ..utils import convert_numeric_code_with_pad
 from ..utils import convert_numeric_code
+from ..utils import Requires
+from ..utils import Requirement
 
 from .data import SaltedFileSource
 from .data import SaltedSTSSource
@@ -31,14 +33,14 @@ class UNCodes(Task):
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
-    def requires(self):
-        return {'unterm': SaltedFileSource('unterm', '.xlsx'),
-                'M49': SaltedM49Source('M49')}
+    requires = Requires()
+    unterm = Requirement(SaltedFileSource, slug='unterm', ext='.xlsx')
+    m49 = Requirement(SaltedM49Source, slug='M49', ext='.csv')
 
     def run(self):
         # Namibia's 2 letter codes are often `NA`, so setting
         # `keep_default_na=False` and clearing `na_values` is essential!
-        m49 = pd.read_csv(self.requires().get('M49').output().path,
+        m49 = pd.read_csv(self.requires().get('m49').output().path,
                           keep_default_na=False, na_values=['_'],
                           converters={'Country or Area_en':
                                       lambda x: x.replace("Côte d’Ivoire", "Côte d'Ivoire"),
@@ -86,8 +88,8 @@ class iso4217(Task):
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
-    def requires(self):
-        return {'iso4217': SaltedFileSource(slug='iso4217', ext='.xml'),}
+    requires = Requires()
+    iso4217 = Requirement(SaltedFileSource, slug='iso4217', ext='.xml')
 
     def run(self):
         as_xml = objectify.parse(self.requires().get('iso4217').output().path)
@@ -155,8 +157,8 @@ class marc(Task):
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
-    def requires(self):
-        return {'marc': SaltedFileSource(slug='marc', ext='.xml'),}
+    requires = Requires()
+    marc = Requirement(SaltedFileSource, slug='marc', ext='.xml')
 
     def run(self):
         as_xml = objectify.parse(self.requires().get('marc').output().path)
@@ -197,8 +199,8 @@ class ukgov(Task):
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
-    def requires(self):
-        return {'ukgov': SaltedFileSource(slug='ukgov', ext='.json'),}
+    requires = Requires()
+    ukgov = Requirement(SaltedFileSource, slug='ukgov', ext='.json')
 
     def run(self):
         source = self.requires().get('ukgov').output()
@@ -220,8 +222,8 @@ class cldr(Task):
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
-    def requires(self):
-        return {'cldr': SaltedFileSource(slug='cldr', ext='.json'),}
+    requires = Requires()
+    cldr = Requirement(SaltedFileSource, slug='cldr', ext='.json')
 
     def run(self):
         source = self.requires().get('cldr').output()
@@ -262,40 +264,41 @@ class CountryCodes(Task):
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
-    def requires(self):
-        return {'UNCodes': UNCodes(),
-                'iso4217': iso4217(),
-                'marc': marc(),
-                'ukgov': ukgov(),
-                'cldr': cldr(),
-                'edgar': SaltedEdgarSource(),
-                'geonames': SaltedFileSource(slug='geonames', ext='.txt'),
-                'usa-census': SaltedFileSource(slug='usa-census', ext='.txt'),
-                'exio-wiod-eora': SaltedFileSource(slug='exio-wiod-eora', ext='.tsv'),
-                'fao': SaltedSTSSource(slug='fao'),
-                'fifa-ioc': SaltedSTSSource(slug='fifa-ioc'),
-                'itu-glad': SaltedSTSSource(slug='itu-glad')}
+    requires = Requires()
+    src_UNCodes = Requirement(UNCodes)
+    src_iso4217 = Requirement(iso4217)
+    src_marc = Requirement(marc)
+    src_ukgov = Requirement(ukgov)
+    src_cldr = Requirement(cldr)
+    src_edgar = Requirement(SaltedEdgarSource)
+    src_geonames = Requirement(SaltedFileSource, slug='geonames', ext='.txt')
+    src_usacensus = Requirement(SaltedFileSource, slug='usa-census', ext='.txt')
+    src_exio = Requirement(SaltedFileSource, slug='exio-wiod-eora', ext='.tsv')
+    src_fao = Requirement(SaltedSTSSource, slug='fao', ext='.csv')
+    src_fifa = Requirement(SaltedSTSSource, slug='fifa-ioc', ext='.csv')
+    src_itu = Requirement(SaltedSTSSource, slug='itu-glad', ext='.csv')
+
 
     def run(self):
         # load pre-cleaned datasets (e.g., sources with their own named tasks)
-        UNCodes = pd.read_csv(self.requires().get('UNCodes').output().path,
+        UNCodes = pd.read_csv(self.requires().get('src_UNCodes').output().path,
                               keep_default_na=False, na_values=['_'])
         if DEV_MODE:
             UNCodes.drop('_merge', inplace=True, axis=1)
-        iso4217 = pd.read_csv(self.requires().get('iso4217').output().path,
+        iso4217 = pd.read_csv(self.requires().get('src_iso4217').output().path,
                               keep_default_na=False, na_values=['_'])
-        marc = pd.read_csv(self.requires().get('marc').output().path,
+        marc = pd.read_csv(self.requires().get('src_marc').output().path,
                            keep_default_na=False, na_values=['_'])
-        ukgov = pd.read_csv(self.requires().get('ukgov').output().path,
+        ukgov = pd.read_csv(self.requires().get('src_ukgov').output().path,
                             keep_default_na=False, na_values=['_'])
-        cldr = pd.read_csv(self.requires().get('cldr').output().path,
+        cldr = pd.read_csv(self.requires().get('src_cldr').output().path,
                            keep_default_na=False, na_values=['_'])
-        edgar = pd.read_csv(self.requires().get('edgar').output().path,
+        edgar = pd.read_csv(self.requires().get('src_edgar').output().path,
                             keep_default_na=False, na_values=['_'])
         edgar.columns = ['Edgar Code (edgar)', 'Country Name (edgar)']
 
         # load and clean tabular sources
-        geonames = pd.read_csv(self.requires().get('geonames').output().path,
+        geonames = pd.read_csv(self.requires().get('src_geonames').output().path,
                                keep_default_na=False, na_values=['_'],
                                converters={'ISO-Numeric': convert_numeric_code_with_pad},
                                header=50, sep='\t')
@@ -305,14 +308,14 @@ class CountryCodes(Task):
 
         # TODO this source has some errors...
         # ISO code column has incorrect codes for Kosovo, DRC, and Myanmar
-        usacensus = pd.read_csv(self.requires().get('usa-census').output().path,
+        usacensus = pd.read_csv(self.requires().get('src_usacensus').output().path,
                                 converters={' ISO Code': lambda x: x.replace(' ', '')},
                                 header=3, skiprows=[4, 246, 247, 248, 249],
                                 sep='|')
         usacensus = usacensus.rename(lambda x: x.strip(), axis=1)
         usacensus = usacensus.add_suffix(' (usa-census)')
 
-        exio = pd.read_csv(self.requires().get('exio-wiod-eora').output().path,
+        exio = pd.read_csv(self.requires().get('src_exio').output().path,
                            keep_default_na=False, na_values=['_'], sep='\t',
                            converters={'ISOnumeric': convert_numeric_code_with_pad,
                                        'UNcode': convert_numeric_code_with_pad})
@@ -320,12 +323,12 @@ class CountryCodes(Task):
                                   'UNcode': 'object'})
         exio = exio.add_suffix(' (exio-wiod-eora)')
 
-        fao = pd.read_csv(self.requires().get('fao').output().path,
+        fao = pd.read_csv(self.requires().get('src_fao').output().path,
                           keep_default_na=False, na_values=['_'],
                           converters={'Short name': lambda x: re.sub(r'\\n', '', x)})
         fao = fao.add_suffix(' (fao)')
 
-        fifa = pd.read_csv(self.requires().get('fifa-ioc').output().path,
+        fifa = pd.read_csv(self.requires().get('src_fifa').output().path,
                            keep_default_na=False, na_values=['_'],
                            converters={'ISO': lambda x: re.sub(r'\\n|\[\d+\]', '', x),
                                        'Country': lambda x: re.sub(r'\[\d+\]', '', x),
@@ -333,7 +336,7 @@ class CountryCodes(Task):
         fifa.drop('Flag', inplace=True, axis=1)
         fifa = fifa.add_suffix(' (fifa-ioc)')
 
-        itu = pd.read_csv(self.requires().get('itu-glad').output().path,
+        itu = pd.read_csv(self.requires().get('src_itu').output().path,
                            keep_default_na=False, na_values=['_'])
         itu = itu.add_suffix(' (itu-glad)')
 
@@ -402,6 +405,7 @@ class CountryCodes(Task):
         with self.output().open('w') as f:
             combined.to_csv(f, index=False, float_format='%.0f')
 
+
 class Datapackage(Task):
     __version__ = '0.1'
     DATA_ROOT = 'build/'
@@ -411,8 +415,8 @@ class Datapackage(Task):
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
-    def requires(self):
-        return {'country-codes': CountryCodes()}
+    requires = Requires()
+    source = Requirement(CountryCodes)
 
     def run(self):
         package = Package()
@@ -458,7 +462,7 @@ class Datapackage(Task):
                         }
                     ]
                    }
-        metadata.update(package.infer(self.requires().get('country-codes').output().path))
+        metadata.update(package.infer(self.requires().get('source').output().path))
         metadata.update({'sources': SOURCES})
         with self.output().open('w') as f:
             json.dump(metadata, f)
