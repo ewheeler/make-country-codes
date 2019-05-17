@@ -411,8 +411,8 @@ class Datapackage(Task):
     __version__ = '0.1'
     DATA_ROOT = 'build/'
 
-    pattern = 'datapackage-{salt}'
-    output = SaltedOutput(file_pattern=pattern, ext='.json',
+    pattern = 'datapackage'
+    output = TargetOutput(file_pattern=pattern, ext='.json',
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
