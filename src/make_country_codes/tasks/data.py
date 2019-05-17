@@ -354,7 +354,6 @@ class SimpleTableScrapeSource(Task):
                           target_class=LocalTarget)
 
     def run(self):
-        luigi_logger.debug(['STSS', str(self.slug), dir(self.slug)])
         url = SIMPLE_TABLE_SCRAPE_SOURCES.get(self.slug)
         if USE_SHELVE:
             luigi_logger.debug('USING SHELVE')
