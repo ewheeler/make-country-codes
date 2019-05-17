@@ -19,6 +19,8 @@ from ..utils import bytes_pls
 from ..utils import clean
 from ..utils import sha256sum
 from ..utils import TargetOutput
+from ..utils import Requires
+from ..utils import Requirement
 from ..utils import SuffixPreservingLocalTarget as LocalTarget
 
 USE_SHELVE = False
@@ -132,7 +134,6 @@ class FileSource(Task):
 
     def run(self):
         url = REMOTE_FILE_SOURCES.get(self.slug)
-        luigi_logger.debug(url)
 
         with requests.get(url, stream=True) as r:
             r.raise_for_status()
@@ -151,8 +152,8 @@ class SaltedFileSource(Task):
     ext = Parameter()
     salt = sha256sum()
 
-    def requires(self):
-        return {'source': FileSource(slug=self.slug, ext=self.ext)}
+    requires = Requires()
+    source = Requirement(FileSource, slug=slug, ext=ext)
 
     pattern = '{task.__class__.__name__}-{task.slug}-{task.salt}{task.ext}'
     output = TargetOutput(file_pattern=pattern, ext='',
@@ -178,7 +179,7 @@ class EdgarSource(Task):
                           target_class=LocalTarget)
 
     def run(self):
-        url = CUSTOM_SCRAPE_SOURCES.get(self.slug)
+        url = CUSTOM_SCRAPE_SOURCES.get('Edgar')
 
         content = urllib.request.urlopen(url).read()
         doc = html.fromstring(content)
@@ -219,8 +220,8 @@ class SaltedEdgarSource(Task):
     ext = Parameter(default='.csv')
     salt = sha256sum()
 
-    def requires(self):
-        return {'source': EdgarSource(slug=self.slug, ext=self.ext)}
+    requires = Requires()
+    source = Requirement(EdgarSource, slug='Edgar', ext='.csv')
 
     pattern = '{task.__class__.__name__}-{task.slug}-{task.salt}{task.ext}'
     output = TargetOutput(file_pattern=pattern, ext='',
@@ -243,7 +244,7 @@ class M49Source(Task):
                           target_class=LocalTarget)
 
     def run(self):
-        url = CUSTOM_SCRAPE_SOURCES.get(self.slug)
+        url = CUSTOM_SCRAPE_SOURCES.get('M49')
 
         if USE_SHELVE:
             luigi_logger.debug('USING SHELVE')
@@ -329,8 +330,8 @@ class SaltedM49Source(Task):
     ext = Parameter(default='.csv')
     salt = sha256sum()
 
-    def requires(self):
-        return {'source': M49Source(slug=self.slug, ext=self.ext)}
+    requires = Requires()
+    source = Requirement(M49Source, slug='M49', ext='.csv')
 
     pattern = '{task.__class__.__name__}-{task.slug}-{task.salt}{task.ext}'
     output = TargetOutput(file_pattern=pattern, ext='',
@@ -380,8 +381,8 @@ class SaltedSTSSource(Task):
     ext = Parameter(default='.csv')
     salt = sha256sum()
 
-    def requires(self):
-        return {'source': SimpleTableScrapeSource(slug=self.slug, ext=self.ext)}
+    requires = Requires()
+    source = Requirement(SimpleTableScrapeSource, slug=slug, ext=ext)
 
     pattern = '{task.__class__.__name__}-{task.slug}-{task.salt}{task.ext}'
     output = TargetOutput(file_pattern=pattern, ext='',
@@ -397,10 +398,13 @@ class SaltedSources(WrapperTask):
     def requires(self):
         for slug, url in REMOTE_FILE_SOURCES.items():
             _, ext = os.path.splitext(url)
+            luigi_logger.debug(['SaltedFileSource', slug, ext])
             yield SaltedFileSource(slug=slug, ext=ext)
 
         for slug, url in SIMPLE_TABLE_SCRAPE_SOURCES.items():
+            luigi_logger.debug(['SaltedSTSSource', slug, '.csv'])
             yield SaltedSTSSource(slug=slug, ext='.csv')
 
         for slug, url in CUSTOM_SCRAPE_SOURCES.items():
+            luigi_logger.debug(['Salted__Source', slug, '.csv'])
             yield load_task(__name__, f'Salted{slug}Source', {'slug': slug, 'ext': '.csv'})
