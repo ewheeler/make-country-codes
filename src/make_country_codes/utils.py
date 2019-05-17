@@ -113,6 +113,26 @@ class TargetOutput:
         return self.target_class(target_path, **self.target_kwargs)
 
 
+class SaltedOutput(TargetOutput):
+    def __init__(self, file_pattern='{task.__class__.__name__}-{salt}',
+        ext='.txt', base_dir='data/', target_class=LocalTarget, **target_kwargs):
+        self.file_pattern = file_pattern
+        self.ext = ext
+        self.base_dir = base_dir
+        self.target_class = target_class
+        self.target_kwargs = target_kwargs
+
+    def __call__(self, task):
+        if hasattr(task, 'salt'):
+            # if the task has its own salt, use it
+            salt = task.salt
+        else:
+            # otherwise compute based on task graph versions
+            salt = get_salted_version(task)[:6]
+        target_path = self.base_dir + self.file_pattern.format(task=task, salt=salt) + self.ext
+        return self.target_class(target_path, **self.target_kwargs)
+
+
 def salted_SPLT(task, file_pattern, format=None, **kwargs):
     """A local target with a file path formed with a 'salt' kwarg
 

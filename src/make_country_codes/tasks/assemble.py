@@ -10,6 +10,7 @@ from lxml import objectify
 from datapackage import Package
 
 from ..utils import TargetOutput
+from ..utils import SaltedOutput
 from ..utils import SuffixPreservingLocalTarget as LocalTarget
 from ..utils import convert_numeric_code_with_pad
 from ..utils import convert_numeric_code
@@ -28,8 +29,8 @@ class UNCodes(Task):
     __version__ = '0.1'
     DATA_ROOT = 'build/'
 
-    pattern = '{task.__class__.__name__}'
-    output = TargetOutput(file_pattern=pattern, ext='.csv',
+    pattern = '{task.__class__.__name__}-{salt}'
+    output = SaltedOutput(file_pattern=pattern, ext='.csv',
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
@@ -83,8 +84,8 @@ class iso4217(Task):
     __version__ = '0.1'
     DATA_ROOT = 'build/'
 
-    pattern = '{task.__class__.__name__}'
-    output = TargetOutput(file_pattern=pattern, ext='.csv',
+    pattern = '{task.__class__.__name__}-{salt}'
+    output = SaltedOutput(file_pattern=pattern, ext='.csv',
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
@@ -152,8 +153,8 @@ class marc(Task):
     __version__ = '0.1'
     DATA_ROOT = 'build/'
 
-    pattern = '{task.__class__.__name__}'
-    output = TargetOutput(file_pattern=pattern, ext='.csv',
+    pattern = '{task.__class__.__name__}-{salt}'
+    output = SaltedOutput(file_pattern=pattern, ext='.csv',
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
@@ -194,8 +195,8 @@ class ukgov(Task):
     __version__ = '0.1'
     DATA_ROOT = 'build/'
 
-    pattern = '{task.__class__.__name__}'
-    output = TargetOutput(file_pattern=pattern, ext='.csv',
+    pattern = '{task.__class__.__name__}-{salt}'
+    output = SaltedOutput(file_pattern=pattern, ext='.csv',
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
@@ -217,8 +218,8 @@ class cldr(Task):
     __version__ = '0.1'
     DATA_ROOT = 'build/'
 
-    pattern = '{task.__class__.__name__}'
-    output = TargetOutput(file_pattern=pattern, ext='.csv',
+    pattern = '{task.__class__.__name__}-{salt}'
+    output = SaltedOutput(file_pattern=pattern, ext='.csv',
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
@@ -259,8 +260,8 @@ class CountryCodes(Task):
     __version__ = '0.1'
     DATA_ROOT = 'build/'
 
-    pattern = 'country-codes'
-    output = TargetOutput(file_pattern=pattern, ext='.csv',
+    pattern = 'country-codes-{salt}'
+    output = SaltedOutput(file_pattern=pattern, ext='.csv',
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
@@ -410,8 +411,8 @@ class Datapackage(Task):
     __version__ = '0.1'
     DATA_ROOT = 'build/'
 
-    pattern = 'datapackage'
-    output = TargetOutput(file_pattern=pattern, ext='.json',
+    pattern = 'datapackage-{salt}'
+    output = SaltedOutput(file_pattern=pattern, ext='.json',
                           base_dir=DATA_ROOT,
                           target_class=LocalTarget)
 
